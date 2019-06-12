@@ -22,10 +22,10 @@ xls1354 = 'case1354pegase.xlsx'
 xls9 = 'case9.xlsx'
 
 
-a=HELMpy.nr(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+a=helmpy.nr(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
 
 
-b=HELMpy.helm_PV1(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+b=helmpy.helm_PV1(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
 
 
-c=HELMpy.helm_PV2(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+c=helmpy.helm_PV2(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
