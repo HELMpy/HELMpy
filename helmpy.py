@@ -14,4 +14,9 @@ You should have received a copy of the GNU Affero General Public License along w
 
 from HELM_PV1 import helm_PV1
 from HELM_PV2 import helm_PV2
+from HELM_DS_M1_PV1 import helm_dsM1PV1
+from HELM_DS_M1_PV2 import helm_dsM1PV2
+from HELM_DS_M2_PV1 import helm_dsM2PV1
+from HELM_DS_M2_PV2 import helm_dsM2PV2
 from NR import nr
+from NR_DS import nr_ds
