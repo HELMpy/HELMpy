@@ -25,7 +25,23 @@ xls9 = 'case9.xlsx'
 a=helmpy.nr(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
 
 
-b=helmpy.helm_PV1(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+b=helmpy.nr_ds(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
 
 
-c=helmpy.helm_PV2(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+c=helmpy.helm_PV1(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+
+
+d=helmpy.helm_PV2(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+
+
+e=helmpy.helm_dsM1PV1(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+
+
+f=helmpy.helm_dsM1PV2(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+
+
+g=helmpy.helm_dsM2PV1(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+
+
+h=helmpy.helm_dsM2PV2(xls118,Mismatch=1e-8,Scale=1.02,Print_Details=True)
+
