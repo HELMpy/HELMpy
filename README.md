@@ -17,4 +17,4 @@ HELMpy guide: "HELMpy user's guide.pdf"
 
 ## See Also
 
--   [GridCal](A grid calculation toolkit also featuring implementations of HELM)
+-   [GridCal - A grid calculation toolkit also featuring implementations of HELM](https://github.com/SanPen/GridCal)
