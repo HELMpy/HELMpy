@@ -14,3 +14,7 @@
 HELMpy is an open source package of power flow solvers developed on Python 3. This package contains the Holomorphic Embedding Loadflow Method (HELM) and the Newton-Raphson (NR) algorithm. The intention of HELMpy is to support research, especially on the HELM, and to contribute with the development of open source code related to this subject. The developed code is properly commented and organized so it would be easy to understand and modify. This package was developed by Tulio Molina and Juan José Ortega as a part of their thesis research to obtain the degree of Electrical Engineer at Universidad de los Andes (ULA) in Mérida, Venezuela.
 
 HELMpy guide: "HELMpy user's guide.pdf"
+
+## See Also
+
+-   [GridCal](A grid calculation toolkit also featuring implementations of HELM)
