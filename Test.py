@@ -1,6 +1,6 @@
-
 """
-HELMpy, open source package of power flow solvers developed on Python 3 
+HELMpy, open source package of power flow solvers.
+
 Copyright (C) 2019 Tulio Molina tuliojose8@gmail.com and Juan José Ortega juanjoseop10@gmail.com
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License along w
 
 import helmpy
 
-#Files
+# Files
 xls118 = 'case118.xlsx'
 xls2869 = 'case2869pegase.xlsx'
 xls1354 = 'case1354pegase.xlsx'
