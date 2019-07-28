@@ -50,10 +50,6 @@ Anywhere:
 
     pytest test
 
-## Running tests (to verify)
-
-    pytest test
-
 ## Freezing the requirements
     
     python -m pip freeze --all --exclude-editable > requirements.txt
