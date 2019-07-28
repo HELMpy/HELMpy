@@ -11,7 +11,7 @@ python3.5:
     before_script:
         -   python -m pip install -r requirements.txt
     script:
-        -   python test.py
+        -   PYTHONPATH=. pytest test
     stage:
         test
 
@@ -21,7 +21,7 @@ python3.6:
     before_script:
         -   python -m pip install -r requirements.txt
     script:
-        -   python test.py
+        -   PYTHONPATH=. pytest test
     stage:
         test
 
@@ -31,7 +31,7 @@ python3.7:
     before_script:
         -   python -m pip install -r requirements.txt
     script:
-        -   python test.py
+        -   PYTHONPATH=. pytest test
     stage:
         test
 
