@@ -14,9 +14,9 @@ You should have received a copy of the GNU Affero General Public License along w
 # Compare Several Voltages
 
 # Import libraries and functions
-import os
 import pandas as pd
 import numpy as np
+
 pd.set_option('display.max_rows',1000)
 pd.set_option('display.max_columns',1000)
 pd.set_option('display.width',1000)

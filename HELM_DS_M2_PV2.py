@@ -16,10 +16,10 @@ import numpy as np
 from scipy.sparse.linalg import factorized
 from scipy.sparse import csc_matrix
 import cmath as cm
-import os
 import pandas as pd
 from time import time
 import warnings
+
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
 pd.set_option('display.max_columns',1000)
