@@ -82,6 +82,7 @@ S_gen = 0
 S_load = 0
 S_mismatch = 0
 
+
 # Arrays and data lists creation
 def Dimension():
     global V, Pg, Qg, Pd, Qd, Buses_type, Qgmax, Qgmin, Y, N, Yshunt, Shunt, Ytrans
@@ -118,6 +119,7 @@ def Dimension():
     list_coef = []
     Ybr_list = list()
     Power_branches = np.zeros((N_branches,8), dtype=float)
+
 
 # Branches data processing to construct Ytrans, Yshunt, branches_buses and others
 def Branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
@@ -219,6 +221,7 @@ def Branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
     if( FB not in branches_buses[TB] ):
         branches_buses[TB].append(FB)
 
+
 # Processing of .xls file data
 def Buses_xls():
     global Buses_type, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches
@@ -271,6 +274,7 @@ def Buses_xls():
                 Y[i,phase_dict[i][0][k]] += phase_dict[i][1][k]
     Yre = np.real(Y)
     Yimag = np.imag(Y)
+
 
 # Modified Y matrix
 Ytrans_mod = np.zeros((2*N,2*N),dtype=float)
@@ -325,6 +329,7 @@ def Unknowns_soluc():
         else:
             Soluc_no_eval.append([i,Slack_bus])
 
+
 # Actualized complex voltages array of each bus (Vre+Vim sum)
 V_complex = np.zeros((N,N_coef), dtype=complex)
 # Complex voltages computing
@@ -332,6 +337,7 @@ def Voltages_complex(n):  # coefficient n
     global V_complex, coefficients, Buses_type, N
     for i in range(N):
         V_complex[i][n] = coefficients[i*2][n] + 1j*coefficients[i*2 + 1][n]
+
 
 # Inverse voltages "W" array
 W = np.ones((N,N_coef), dtype=complex)
@@ -345,12 +351,14 @@ def Calculate_W(n):
                 aux += (W[i][k] * V_complex[i][n-k])
             W[i][n] = -aux
 
+
 # Function to evaluate the slack bus equation 
 def Slack_bus(i,n):  # bus i, coefficient n
     global V, Soluc_eval
     if(n==1):
         Soluc_eval[2*i][n] = V[i] - 1
-        
+
+
 # Function to evaluate the PQ buses equation 
 def Load_bus(i,n):  # bus i, coefficient n
     global Pg, Pd, Qg, Qd, Si, Soluc_eval, W, Yshunt, V_complex, phase_barras
@@ -364,6 +372,7 @@ def Load_bus(i,n):  # bus i, coefficient n
         result = np.conj(Si[i])*np.conj(W[i][n-1]) - Yshunt[i]*V_complex[i][n-1]
     Soluc_eval[2*i][n] = np.real(result)
     Soluc_eval[2*i + 1][n] = np.imag(result)
+
 
 # Function to evaluate the PV buses equation 
 def Gen_bus2(i,n):  # bus i, coefficient n
@@ -431,6 +440,7 @@ def Gen_bus2(i,n):  # bus i, coefficient n
     Soluc_eval[2*i][n] = CC
     Soluc_eval[2*i + 1][n] = VV/2
 
+
 # Epsilon Algorithm for the analytic continuation of the power series through Padé approximants
 def Epsilon(serie_completa,largo_actual):
     serie = serie_completa[:largo_actual]
@@ -442,6 +452,7 @@ def Epsilon(serie_completa,largo_actual):
         for row in range(0,len(serie)+1-col):
             cont[row][col] = cont[row+1][col-2] + 1/(cont[row+1][col-1]-cont[row][col-1])
     return cont[0][len(serie)]
+
 
 # Matrix method for the analytic continuation of the power series through Padé approximants
 def Pade(serie_completa,largo_actual):
@@ -464,11 +475,13 @@ def Pade(serie_completa,largo_actual):
         a[i] = aux
     return np.sum(a)/np.sum(b)
 
+
 # Separation of the voltage profile in its real and imaginary parts
 def Voltages_profile():
     global V_complex_profile, Vre, Vimag
     Vre = np.real(V_complex_profile)
     Vimag = np.imag(V_complex_profile)
+
 
 # Verification of Qgen limits for PVLIM buses
 def Check_PVLIM():
@@ -492,6 +505,7 @@ def Check_PVLIM():
                 print('Bus %d exceeded its Qgen limit with %f. The exceeded limit %f will be assigned to the bus'%(i+1,Qg_incog,Qg[i]))
     return flag_violacion
 
+
 # Computing Q injection at bus i. Must be used after Voltages_profile()
 def Q_iny(i):
     global Vre, Vimag, Yre, Yimag, N, branches_buses
@@ -500,6 +514,7 @@ def Q_iny(i):
         Qiny += Vimag[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) - Vre[i]*(Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
     return Qiny
 
+
 # Computing P injection at bus i. Must be used after Voltages_profile()
 def P_iny(i):
     global Vre, Vimag, Yre, Yimag, N, branches_buses
@@ -507,6 +522,7 @@ def P_iny(i):
     for k in branches_buses[i]:
         Piny += Vre[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) + Vimag[i]*(Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
     return Piny
+
 
 # Re-construct list_gen. List of generators (PV buses)
 def Make_list_gen():
@@ -519,6 +535,7 @@ def Make_list_gen():
                 list_gen_aux[pos] = i
                 pos += 1
         list_gen = list_gen_aux.copy()
+
 
 # Series coefficients counter (to mismatch) 
 series_large = 0
@@ -602,6 +619,7 @@ def Computing_Voltages_Mismatch():
             break
     return Flag_recalculate
 
+
 # Computation of power flow trough branches and power balance
 def Power_balance():
     global V_complex_profile, Ybr_list, Power_branches, N_branches, Power_print, N, Shunt, slack, Pd, Qd, Pg, Qg, K, Pmismatch, S_gen, S_load, S_mismatch, detailed_run_print, Q_limits, list_gen
@@ -670,13 +688,17 @@ def Power_balance():
         print("\n\n\tPower balance:\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
         print("\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
 
+
 # Separate each voltage value in magnitude and phase angle (degrees)
 V_polar_final = np.zeros((N,2), dtype=float)
+
+
 def Final_Results():
     global V_complex_profile, V_polar_final, N
     for i in range(N):
         magnitude, radians = cm.polar(V_complex_profile[i])
         V_polar_final[i,0],V_polar_final[i,1] = magnitude, np.rad2deg(radians)
+
 
 def Print_Voltage_Profile():
     global V_polar_final, N, detailed_run_print
@@ -694,6 +716,7 @@ def Print_Voltage_Profile():
             print("     .\t         .\t\t      .")
             for i in range(N-14,N):
                 print("%6s"%i,"\t     %1.6f"%V_polar_final[i,0],"\t\t{:11.6f}".format(V_polar_final[i,1]))
+
 
 def write_results_on_files():
     global V_polar_final, T, Mis, scale, list_coef, case, V_complex_profile, Power_print, Pmismatch, S_gen, S_load, S_mismatch
@@ -719,6 +742,7 @@ def write_results_on_files():
 
 T = 0 # time variable
 # Main loop
+
 def helm_PV2(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxCoefficients=100, Enforce_Qlimits=True):
     global V_complex_profile, N, buses, branches, N_branches, N_coef, N_generators, generators, T, Flag_divergence
     global detailed_run_print, Mis, case, scale, N_coef, Q_limits

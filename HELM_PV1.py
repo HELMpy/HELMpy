@@ -666,6 +666,7 @@ def Final_Results():
         magnitude, radians = cm.polar(V_complex_profile[i])
         V_polar_final[i,0],V_polar_final[i,1] = magnitude, np.rad2deg(radians)
 
+
 def Print_Voltage_Profile():
     global V_polar_final, N, detailed_run_print
     if(detailed_run_print):
@@ -682,6 +683,7 @@ def Print_Voltage_Profile():
             print("     .\t         .\t\t      .")
             for i in range(N-14,N):
                 print("%6s"%i,"\t     %1.6f"%V_polar_final[i,0],"\t\t{:11.6f}".format(V_polar_final[i,1]))
+
 
 def write_results_on_files():
     global V_polar_final, T, Mis, scale, list_coef, case, V_complex_profile, Power_print, Pmismatch, S_gen, S_load, S_mismatch 

@@ -12,7 +12,6 @@ You should have received a copy of the GNU Affero General Public License along w
 
 
 # Import libraries and functions
-import os
 import pandas as pd
 import numpy as np
 from scipy.sparse import csc_matrix
@@ -73,6 +72,7 @@ S_load = 0
 S_mismatch = 0
 list_gen = np.zeros(1, dtype=int)
 
+
 def variables_initialization():
     global N, ref, Buses, V, tita, Pg, Pesp, Qg, Pd, Qd, Qgmax, Qgmin, Shunt, dimension, Y
     global deltas_P_Q, Jaco, known, unknown, PVLIM_flag, PVLIM_buses, iterations
@@ -121,6 +121,7 @@ def variables_initialization():
     Ybr_list = list()
     Power_branches = np.zeros((N_branches,8), dtype=float)
     list_gen = np.zeros(N_generators-1, dtype=int)
+
 
 # Branches data processing to construct Ytrans, Yshunt, branches_buses and others
 def Branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
@@ -189,6 +190,7 @@ def Branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
     if( FB not in branches_buses[TB] ):
         branches_buses[TB].append(FB)
 
+
 # Processing of .xlsx file data
 def Buses_xls():
     global Buses, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches
@@ -241,6 +243,7 @@ def Buses_xls():
     Yre = np.real(Y)
     Yimag = np.imag(Y)
 
+
 # Structure and dimensions of the jacobian
 def Jacobian():
     global Buses, known, unknown, dimension, deltas_P_Q, Jaco, branches_buses
@@ -289,6 +292,7 @@ def Jacobian():
     deltas_P_Q = np.zeros(dimension,dtype=float)
     Jaco = np.zeros((dimension,dimension),dtype=float)
 
+
 # Store the corresponding function of each entry of the jacobian
 def Jacobian_Functions():
     global jaco_funct_store, Jaco, branches_buses, known_dict, unknown_dict, Number_bus, ref
@@ -333,6 +337,7 @@ def Jacobian_Functions():
                         else:
                             jaco_funct_store.append([Lik,bus_i,bus_j,row_jaco,colum_jaco])
 
+
 def Compute_Iterative_Jacobian_Entries():
     global Jaco, jaco_funct_store, K_factors, Gen_contribute
     # Compute jacobian entries
@@ -345,6 +350,7 @@ def Compute_Iterative_Jacobian_Entries():
         Jaco[position_i][position_j] = Funct_actual(bus_i,bus_j)
     for i in range(len(Gen_contribute)):
         Jaco[Gen_contribute[i]][0] = K_factors[Gen_contribute[i]]
+
 
 def Compute_K_factors():
     global Pg, Buses, ref, Pd, K_factors, Number_bus, Gen_contribute, Pesp, N
@@ -363,6 +369,7 @@ def Compute_K_factors():
     for i in range(len(Gen_contribute)):
         K_factors[Gen_contribute[i]] = Pg[Gen_contribute[i]]/Pg_de_Barras_PV
 
+
 # Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
 def K_slack_1():
     global K_factors, ref, Number_bus, Gen_contribute
@@ -370,6 +377,7 @@ def K_slack_1():
     Gen_contribute.append(slack)
     K_factors = np.zeros(N, dtype=float)
     K_factors[slack] = 1
+
 
 def Convergence_Check():
     global known, deltas_P_Q, Mis, iterations, detailed_run_print
@@ -416,6 +424,7 @@ def Convergence_Check():
 
     return stop_iterations
 
+
 # Voltages and phase angles results actualization on each iteration
 def Actualizacion_Resultados():
     global unknown, deltas_Ploss_tita_V, dimension, tita, V, Ploss, V_complex_profile, Vre, Vimag, N
@@ -438,6 +447,7 @@ def Actualizacion_Resultados():
         V_complex_profile[i] = cm.rect(V[i],tita[i])
         Vre[i]   = np.real(V_complex_profile[i])
         Vimag[i] = np.imag(V_complex_profile[i])
+
 
 def Check_Generators_Limits():
     global PVLIM_buses, PVLIM_flag, Buses, Qg, Qgmax, Qgmin
@@ -468,46 +478,55 @@ def Check_Generators_Limits():
             
     return restart_NR
 
+
 # Functions to compute the jacobian entries
 def Hii(i,nada):
     global Qi, V, Yimag
     Hii = -Qi[i] - (V[i]*V[i]*Yimag[i][i])
     return Hii
 
+
 def Hik(i,k):
     global Vre, Yre, Yimag, Vimag 
     Hik = Vimag[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) - Vre[i]*(Yimag[i][k]*Vre[k] + Yre[i][k]*Vimag[k])
     return Hik
+
 
 def Nii(i,nada):
     global Pi, V, Yre
     Nii = Pi[i] + V[i]*V[i]*Yre[i][i]
     return Nii
 
+
 def Nik(i,k):
     global Vre, Yre, Yimag, Vimag
     Nik = Vre[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) + Vimag[i]*(Yimag[i][k]*Vre[k] + Yre[i][k]*Vimag[k])
     return Nik
+
 
 def Jii(i,nada):
     global Pi, V, Yre
     Jii = Pi[i] - (V[i]*V[i]*Yre[i][i])
     return Jii
 
+
 def Jik(i,k):
     global Vre, Yre, Yimag, Vimag
     Jik = -Vre[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) - Vimag[i]*(Yimag[i][k]*Vre[k] + Yre[i][k]*Vimag[k])
     return Jik
-    
+
+
 def Lii(i,nada):
     global Qi, V, Yimag
     Lii = Qi[i] - (V[i]*V[i]*Yimag[i][i])
     return Lii
 
+
 def Lik(i,k):
     global Vre, Yre, Yimag, Vimag
     Lik = Vimag[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) - Vre[i]*(Yimag[i][k]*Vre[k] + Yre[i][k]*Vimag[k])
     return Lik
+
 
 # Functions to compute power injection
 def Piny(i):
@@ -517,12 +536,14 @@ def Piny(i):
         P_iny += Vre[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) + Vimag[i]*(Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
     Pi[i] = P_iny
 
+
 def Qiny(i):
     global Vre, Vimag, Yre, Yimag, Qi, N, branches_buses
     Q_iny = 0
     for k in branches_buses[i]:
         Q_iny += Vimag[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) - Vre[i]*(Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
     Qi[i] = Q_iny
+
 
 # Computation of power flow trough branches and power balance
 def Power_balance():
@@ -596,6 +617,7 @@ def Power_balance():
         print("\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
         print("\nComparison between active power losses 'Ploss' and active power\nthrough branches and shunt elements 'Pmismatch' (MW):\t\t\t\t"+str(np.real(Ploss*100))+" = "+str(Pmismatch*100))
 
+
 def Print_Voltage_Profile():
     global V, tita_degree, N, detailed_run_print
     if(detailed_run_print):
@@ -612,6 +634,7 @@ def Print_Voltage_Profile():
             print("     .\t         .\t\t      .")
             for i in range(N-14,N):
                 print("%6s"%i,"\t     %1.6f"%V[i],"\t\t{:11.6f}".format(tita_degree[i]))
+
 
 def write_results_on_files():
     global V_complex_profile, V, tita_degree, scale, T_bucle_out, list_iterations, Mis, case, Power_print, Pmismatch, S_gen, S_load, S_mismatch, Ploss
