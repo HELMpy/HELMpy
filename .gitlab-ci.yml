@@ -21,7 +21,7 @@ python3.6:
     before_script:
         -   python -m pip install -r requirements.txt
     script:
-        -   python Test.py
+        -   python test.py
     stage:
         test
 
@@ -31,7 +31,7 @@ python3.7:
     before_script:
         -   python -m pip install -r requirements.txt
     script:
-        -   python Test.py
+        -   python test.py
     stage:
         test
 
@@ -43,15 +43,3 @@ python3.7:
 #    artifacts:
 #        paths:
 #            -   dist/*.whl
-
-#sphinx_html:
-#    stage:
-#        docs
-#    script:
-#        -   apt update
-#        -   apt install --yes build-essential
-#        -   pip install sphinx sphinx-rtd-theme
-#        -   cd doc; make html
-#    artifacts:
-#        paths:
-#            -   public
