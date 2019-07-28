@@ -20,8 +20,8 @@ import pandas as pd
 from time import time
 import warnings
 
-from NR import get_case_name_from_path_without_extension
-from root_path import ROOT_PATH
+from helmpy.NR import get_case_name_from_path_without_extension
+from helmpy.root_path import ROOT_PATH
 
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)

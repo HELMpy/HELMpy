@@ -13,7 +13,7 @@ You should have received a copy of the GNU Affero General Public License along w
 import pandas as pd
 import numpy as np
 
-from root_path import ROOT_PATH
+from helmpy.root_path import ROOT_PATH
 
 
 def main(

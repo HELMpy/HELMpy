@@ -1,5 +1,5 @@
-from compare_voltages import main
-from root_path import ROOT_PATH
+from helmpy.compare_voltages import main
+from helmpy.root_path import ROOT_PATH
 
 
 def test_compare_voltages():
