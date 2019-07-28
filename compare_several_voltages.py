@@ -17,6 +17,7 @@ You should have received a copy of the GNU Affero General Public License along w
 import pandas as pd
 import numpy as np
 
+
 def main():
     pd.set_option('display.max_rows',1000)
     pd.set_option('display.max_columns',1000)
@@ -29,7 +30,6 @@ def main():
                  'put the file name here.xlsx']
 
     print_all = False ###############################
-
 
     data = pd.read_excel(file_base,sheet_name="Buses")
     magnitude_1 = data['Voltages Magnitude']
