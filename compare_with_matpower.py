@@ -18,35 +18,36 @@ import pandas as pd
 import numpy as np
 
 
-def main():
+def main(
+    *,
+    matpower_xlsx_file_path,
+    helm_xlsx_file_path,
+    print_all,
+):
     pd.set_option('display.max_rows',1000)
     pd.set_option('display.max_columns',1000)
     pd.set_option('display.width',1000)
 
     ############   Modify these files names   ###################
-    # HELMpy file name
     data1 = pd.read_excel(
-        'put the file name here.xlsx',
+        helm_xlsx_file_path,
         sheet_name="Buses",
     )
-    # MATPOWER file name
-    data_MATPOWER = pd.read_excel(
-        'put the file name here.xlsx',
+    data_matpower = pd.read_excel(
+        matpower_xlsx_file_path,
         sheet_name='Buses',
         header=None,
     )
 
-    for i in range(len(data_MATPOWER)):
-        if(data_MATPOWER[1][i] == 3):
+    for i in range(len(data_matpower)):
+        if(data_matpower[1][i] == 3):
             slack = i
             break
 
     magnitude_1 = data1['Voltages Magnitude']
     phase_angles_1 = data1["Voltages Phase Angle"]
-    magnitude_MATPOWER = data_MATPOWER[7]
-    phase_angles_MATPOWER = data_MATPOWER[8] - data_MATPOWER[8][slack]
-
-    print_all = False ###############################
+    magnitude_MATPOWER = data_matpower[7]
+    phase_angles_MATPOWER = data_matpower[8] - data_matpower[8][slack]
 
     M = np.zeros(len(magnitude_1))
     P_A = np.zeros(len(magnitude_1))
@@ -73,4 +74,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(
+        matpower_xlsx_file_path='put the file name here.xlsx',
+        helm_xlsx_file_path='put the file name here.xlsx',
+        print_all=True,
+    )
