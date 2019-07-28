@@ -15,8 +15,6 @@ setup(
     name='helmpy',
     version='0.1.0' + 'rc' + TIMESTAMP,
     url='https://github.com/HELMpy/HELMpy',
-    author='Tulio Molina, Juan Jose Ortega',
-    author_email='tuliojose8@gmail.com, Juan Jose Ortega juanjoseop10@gmail.com',
     description='HELMpy is an open source package of power flow solvers, including the Holomorphic Embedding Load Flow Method (HELM).',
     packages=find_packages(
         where='.',
