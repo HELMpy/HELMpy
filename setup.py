@@ -1,14 +1,19 @@
+import datetime
+
 from setuptools import setup, find_packages
 
 with open('README.md', 'r') as readme_file:
     long_description = readme_file.read()
+
+TIMESTAMP = str(datetime.datetime.now().replace(microsecond=0).isoformat()).\
+    replace('-', '').replace('T', '').replace(':', '')
 
 setup(
     include_package_data=True,
     long_description=long_description,
     long_description_content_type='text/markdown',
     name='helmpy',
-    version='0.1.0rc0',
+    version='0.1.0' + 'rc' + TIMESTAMP,
     url='https://github.com/HELMpy/HELMpy',
     author='Tulio Molina, Juan José Ortega',
     author_email='tuliojose8@gmail.com, Juan José Ortega juanjoseop10@gmail.com',
