@@ -9,38 +9,53 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
+import random
+
+import pytest
+import numpy
 
 import helmpy
+from root_path import ROOT_PATH
 
+file_names = [
+    ROOT_PATH / 'data' / 'case' / 'case118.xlsx',
+    ROOT_PATH / 'data' / 'case' / 'case2869pegase.xlsx',
+    ROOT_PATH / 'data' / 'case' / 'case1354pegase.xlsx',
+    ROOT_PATH / 'data' / 'case' / 'case9.xlsx',
+]
+functions = [
+    helmpy.nr,
+    helmpy.nr_ds,
+    helmpy.helm_PV1,
+    helmpy.helm_PV2,
+    helmpy.helm_dsM1PV1,
+    helmpy.helm_dsM1PV2,
+    helmpy.helm_dsM2PV1,
+    helmpy.helm_dsM2PV2,
+]
 
-def test_helm_py():
+@pytest.mark.parametrize(
+    'file_name, ', file_names,
+)
+@pytest.mark.parametrize(
+    'function, ', functions,
+)
+def test_helm_py(function, file_name):
     """
     Test the HELMpy package
 
     :return: None
     """
+    # Seed for deterministic results
+    random.seed(42)
+    numpy.random.mtrand.seed(42)
 
-    # Files
-    xls118 = 'case118.xlsx'
-    xls2869 = 'case2869pegase.xlsx'
-    xls1354 = 'case1354pegase.xlsx'
-    xls9 = 'case9.xlsx'
+    result = function(str(file_name), Mismatch=1e-8, Scale=1.02, Print_Details=True)
+    print(result)
 
-    a = helmpy.nr(xls118, Mismatch=1e-8, Scale=1.02, Print_Details=True)
-    b = helmpy.nr_ds(xls118, Mismatch=1e-8, Scale=1.02, Print_Details=True)
-    c = helmpy.helm_PV1(xls118, Mismatch=1e-8, Scale=1.02, Print_Details=True)
-    d = helmpy.helm_PV2(xls118, Mismatch=1e-8, Scale=1.02, Print_Details=True)
-    e = helmpy.helm_dsM1PV1(xls118, Mismatch=1e-8, Scale=1.02,
-                            Print_Details=True)
-    f = helmpy.helm_dsM1PV2(xls118, Mismatch=1e-8, Scale=1.02,
-                            Print_Details=True)
-    g = helmpy.helm_dsM2PV1(xls118, Mismatch=1e-8, Scale=1.02,
-                            Print_Details=True)
-    h = helmpy.helm_dsM2PV2(xls118, Mismatch=1e-8, Scale=1.02,
-                            Print_Details=True)
+    return
 
     # TODO Make assertions
-    # TODO Parameterize test using PyTest
 
 
 if __name__ == '__main__':

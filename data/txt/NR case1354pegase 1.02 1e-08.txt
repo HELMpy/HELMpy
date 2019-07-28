@@ -1,0 +1,10 @@
+Scale: 1.02	Time: 4.523189306259155 sg	Mismatch: 1e-08
+Iterations per PVLIM-PQ switches: [5, 3, 3, 2]
+
+Power balance:
+
+Total generated power (MVA):							76268.2153407928 + 20877.805136524297j
+Total demanded power (MVA):							74520.8634 + 13669.468799999999j
+Total power through branches and shunt elements (mismatch) (MVA):		1747.3519407930169 + 7208.336336523297j
+
+Comparison between generated power and demanded plus mismatch power (MVA):	76268.2153407928 + 20877.805136524297j  =  76268.21534079302 + 20877.805136523297j

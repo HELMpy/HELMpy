@@ -10,28 +10,36 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
-
-# Compare Several Voltages
-
-# Import libraries and functions
 import pandas as pd
 import numpy as np
 
+from root_path import ROOT_PATH
 
-def main():
+
+def main(
+    *,
+    print_all,
+    base_profile_xlsx,
+    comparison_xlsx_list,
+):
+    """
+    Compare Several Voltages
+
+    :param print_all:
+    :param base_profile_xlsx:
+    :param comparison_xlsx_list:
+    :return:
+    """
     pd.set_option('display.max_rows',1000)
     pd.set_option('display.max_columns',1000)
     pd.set_option('display.width',1000)
 
     ############   Modify these files names   ###################
     # base profile
-    file_base = 'put the file name here.xlsx'
-    file_list = ['put the file name here.xlsx',
-                 'put the file name here.xlsx']
+    file_base = base_profile_xlsx
+    file_list = comparison_xlsx_list
 
-    print_all = False ###############################
-
-    data = pd.read_excel(file_base,sheet_name="Buses")
+    data = pd.read_excel(file_base, sheet_name="Buses")
     magnitude_1 = data['Voltages Magnitude']
     phase_angles_1 = data["Voltages Phase Angle"]
 
@@ -66,4 +74,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(
+        base_profile_xlsx= ROOT_PATH / 'data' / 'results' / 'Results HELM DS M2 PV2 case118 1.02 1e-08.xlsx',
+        comparison_xlsx_list=[
+            ROOT_PATH / 'data' / 'results' / 'Results HELM DS M1 PV1 case118 1.02 1e-08.xlsx',
+            ROOT_PATH / 'data' / 'results' / 'Results HELM DS M1 PV2 case118 1.02 1e-08.xlsx',
+        ],
+        print_all=False
+    )

@@ -19,6 +19,10 @@ from scipy.sparse.linalg import spsolve
 import cmath as cm
 from time import time
 import warnings
+
+from NR import get_case_name_from_path_without_extension
+from root_path import ROOT_PATH
+
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
 pd.set_option('display.max_columns',1000)
@@ -643,21 +647,26 @@ def write_results_on_files():
     data["Complex Voltages"] = V_complex_profile
     data["Voltages Magnitude"] = V
     data["Voltages Phase Angle"] = tita_degree
-    xlsx_name = 'Resutls NR DS '+str(case)+' '+str(scale)+' '+str(Mis)+'.xlsx'
-    file = pd.ExcelWriter(xlsx_name)
+    case = get_case_name_from_path_without_extension(case)
+    xlsx_file_name = 'Results NR DS' + \
+                     str(case) + ' ' + \
+                     str(scale) + ' ' + \
+                     str(Mis) + '.xlsx'
+    xlsx_file_path = ROOT_PATH / 'data' / 'results' / xlsx_file_name
+    file = pd.ExcelWriter(xlsx_file_path)
     data.to_excel(file,sheet_name="Buses")
     # Branch info is written on .xlsx file
     Power_print.to_excel(file,sheet_name="Branches")
     file.save()
     # time and iterations are written on a .txt file
     txt_name = "NR DS "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
-    result = open(txt_name,"w")
+    result = open(ROOT_PATH / 'data' / 'txt' / txt_name,"w")
     result.write('Scale: '+str(scale)+'\tTime: '+str(T_bucle_out)+' sg'+'\tMismatch: '+str(Mis)+'\nIterations per PVLIM-PQ switches: '+str(list_iterations))
     result.write("\n\nPower balance:\n\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
     result.write("\n\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
     result.write("\n\nComparison between active power losses 'Ploss' and active power\nthrough branches and shunt elements 'Pmismatch' (MW):\t\t\t\t"+str(np.real(Ploss*100))+" = "+str(Pmismatch*100))
     result.close()
-    print("\nResults have been written on the files:\n\t%s \n\t%s"%(xlsx_name,txt_name))
+    print("\nResults have been written on the files:\n\t%s \n\t%s"%(xlsx_file_path,txt_name))
 
 # main function
 def nr_ds(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxIterations=15, Enforce_Qlimits=True, DSB_model=True):
@@ -667,7 +676,7 @@ def nr_ds(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Sca
     if (type(GridName)is not str) or(type(Print_Details)is not bool) or(type(Mismatch)is not float) or(type(Results_FileName)is not str) or not( (type(Scale)is float) or(type(Scale)is int) ) or(type(MaxIterations) is not int) or(type(DSB_model) is not bool) or(type(Enforce_Qlimits) is not bool):
         print("Erroneous argument type.")
         return
-    xls_actual = GridName
+    xls_actual = ROOT_PATH / 'data' / 'case' / GridName
     detailed_run_print = Print_Details
     Mis = Mismatch
     if(Results_FileName==''):

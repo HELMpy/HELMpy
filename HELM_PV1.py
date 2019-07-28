@@ -20,6 +20,9 @@ import pandas as pd
 from time import time
 import warnings
 
+from NR import get_case_name_from_path_without_extension
+from root_path import ROOT_PATH
+
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
 pd.set_option('display.max_columns',1000)
@@ -591,6 +594,7 @@ def Computing_Voltages_Mismatch():
             break
     return Flag_recalculate
 
+
 # Computation of power flow trough branches and power balance
 def Power_balance():
     global V_complex_profile, Ybr_list, Power_branches, N_branches, Power_print, N, Shunt, slack, Pd, Qd, Pg, Qg, K, Pmismatch, S_gen, S_load, S_mismatch, detailed_run_print, Q_limits, list_gen
@@ -658,6 +662,7 @@ def Power_balance():
         print("\n\n\tPower balance:\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
         print("\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
 
+
 # Separate each voltage value in magnitude and phase angle (degrees)
 V_polar_final = np.zeros((N,2), dtype=float)
 def Final_Results():
@@ -692,20 +697,26 @@ def write_results_on_files():
     data["Complex Voltages"] = V_complex_profile
     data["Voltages Magnitude"] = V_polar_final[:,0]
     data["Voltages Phase Angle"] = V_polar_final[:,1]
-    xlsx_name = 'Results HELM PV1 '+str(case)+' '+str(scale)+' '+str(Mis)+'.xlsx'
-    file = pd.ExcelWriter(xlsx_name)
+    case = get_case_name_from_path_without_extension(case)
+    xlsx_file_name = 'Results HELM PV1' + \
+                     str(case) + ' ' + \
+                     str(scale) + ' ' + \
+                     str(Mis) + '.xlsx'
+    xlsx_file_path = ROOT_PATH / 'data' / 'results' / xlsx_file_name
+    file = pd.ExcelWriter(xlsx_file_path)
     data.to_excel(file,sheet_name="Buses")
     # Branch info is written on .xlsx file
     Power_print.to_excel(file,sheet_name="Branches")
     file.save()
     # Coefficients per PVLIM-PQ switches are written on a .txt file
     txt_name = "HELM PV1 "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
-    result = open(txt_name,"w")
+    result = open(ROOT_PATH / 'data' / 'txt' / txt_name,"w")
     result.write('Scale:'+str(scale)+'\tTime:'+str(T)+' sg'+'\tMismatch:'+str(Mis)+'\n'+'Coefficients per PVLIM-PQ switches: '+str(list_coef))
     result.write("\n\nPower balance:\n\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
     result.write("\n\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
     result.close()
-    print("\nResults have been written on the files:\n\t%s \n\t%s"%(xlsx_name,txt_name))
+    print("\nResults have been written on the files:\n\t%s \n\t%s"%(xlsx_file_path,txt_name))
+
 
 T = 0 # time variable
 # Main loop
@@ -715,7 +726,7 @@ def helm_PV1(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', 
     if (type(GridName)is not str) or(type(Print_Details)is not bool) or(type(Mismatch)is not float) or(type(Results_FileName)is not str) or not( (type(Scale)is float) or(type(Scale)is int) ) or(type(MaxCoefficients) is not int) or(type(Enforce_Qlimits) is not bool):
         print("Erroneous argument type.")
         return
-    xls_actual = GridName
+    xls_actual = ROOT_PATH / 'data' / 'case' / GridName
     detailed_run_print = Print_Details
     Mis = Mismatch
     if(Results_FileName==''):
