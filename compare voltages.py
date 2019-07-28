@@ -11,32 +11,34 @@ You should have received a copy of the GNU Affero General Public License along w
 """
 
 
-# Compare Several Voltages
+# Compare Voltages
 
 # Import libraries and functions
 import pandas as pd
 import numpy as np
 
-pd.set_option('display.max_rows',1000)
-pd.set_option('display.max_columns',1000)
-pd.set_option('display.width',1000)
 
-############   Modify these files names   ###################
-file_base = 'put the file name here.xlsx'     #base profile
-file_list =    ['put the file name here.xlsx',
-                'put the file name here.xlsx']
+def main():
+    pd.set_option('display.max_rows',1000)
+    pd.set_option('display.max_columns',1000)
+    pd.set_option('display.width',1000)
 
-print_all = False ###############################
+    ############   Modify these files names   ###################
+    data1 = pd.read_excel(
+        'put the file name here.xlsx',
+        sheet_name="Buses",
+    )
+    data2 = pd.read_excel(
+        'put the file name here.xlsx',
+        sheet_name="Buses",
+    )
 
+    magnitude_1 = data1['Voltages Magnitude']
+    phase_angles_1 = data1["Voltages Phase Angle"]
+    magnitude_2 = data2['Voltages Magnitude']
+    phase_angles_2 = data2["Voltages Phase Angle"]
 
-data = pd.read_excel(file_base,sheet_name="Buses")
-magnitude_1 = data['Voltages Magnitude']
-phase_angles_1 = data["Voltages Phase Angle"]
-
-for file in file_list:
-    data = pd.read_excel(file,sheet_name="Buses")
-    magnitude_2 = data['Voltages Magnitude']
-    phase_angles_2 = data["Voltages Phase Angle"]
+    print_all = False ###############################
 
     M = np.zeros(len(magnitude_1))
     P_A = np.zeros(len(magnitude_1))
@@ -44,21 +46,23 @@ for file in file_list:
     if(print_all):
         print("\n---------1---------")
         for i in range(len(magnitude_1)):
-        	print(i,magnitude_1[i],phase_angles_1[i])
+            print(i,magnitude_1[i],phase_angles_1[i])
+
         print("\n---------2---------")
         for i in range(len(magnitude_1)):
-        	print(i,magnitude_2[i],phase_angles_2[i])
+            print(i,magnitude_2[i],phase_angles_2[i])
 
     if(print_all):
         print("\n----Differences between 1 and 2-----")
     for i in range(len(magnitude_1)):
-    	M[i] = abs(magnitude_1[i]-magnitude_2[i])
-    	P_A[i] = abs(phase_angles_1[i]-phase_angles_2[i])
-    	if(print_all):
-    		print(i,"Magnitude:",M[i],"Phase Angles:",P_A[i])
+        M[i] = abs(magnitude_1[i]-magnitude_2[i])
+        P_A[i] = abs(phase_angles_1[i]-phase_angles_2[i])
+        if(print_all):
+            print(i,"Magnitude:",M[i],"Phase Angles:",P_A[i])
 
-    print("Differences between \"%s\" y \"%s\""%(file_base,file))
     print("Highest magnitude difference: ",np.max(M))
     print("Highest Phase Angles difference: ",np.max(P_A))
-    print("\n\n")
 
+
+if __name__ == '__main__':
+    main()
