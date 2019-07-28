@@ -11,7 +11,7 @@ python3.6:
     before_script:
         -   python -m pip install -r requirements.txt
     script:
-        -   PYTHONPATH=. pytest test --verbose --cov=helmpy --cov-branch
+        -   tox -e py36
     stage:
         test
 
@@ -21,7 +21,7 @@ python3.7:
     before_script:
         -   python -m pip install -r requirements.txt
     script:
-        -   PYTHONPATH=. pytest test --verbose --cov=helmpy --cov-branch
+        -   tox -e py37
     stage:
         test
 
