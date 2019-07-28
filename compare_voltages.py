@@ -10,26 +10,33 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
-
-# Compare Voltages
-
-# Import libraries and functions
 import pandas as pd
 import numpy as np
 
 
-def main():
+def main(
+        *,
+        xlsx_0_file_path,
+        xlsx_1_file_path,
+):
+    """
+    Compare Voltages
+
+    :param xlsx_0_file_path:
+    :param xlsx_1_file_path:
+    :return:
+    """
     pd.set_option('display.max_rows',1000)
     pd.set_option('display.max_columns',1000)
     pd.set_option('display.width',1000)
 
     ############   Modify these files names   ###################
     data1 = pd.read_excel(
-        'put the file name here.xlsx',
+        xlsx_0_file_path,
         sheet_name="Buses",
     )
     data2 = pd.read_excel(
-        'put the file name here.xlsx',
+        xlsx_1_file_path,
         sheet_name="Buses",
     )
 
@@ -65,4 +72,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(
+        xlsx_0_file_path='Results HELM DS M1 PV1 case118 1.02 1e-08.xlsx',
+        xlsx_1_file_path='Results HELM DS M1 PV2 case118 1.02 1e-08.xlsx',
+    )
