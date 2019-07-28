@@ -5,16 +5,6 @@ stages:
 #    -   build
 #    -   release
 
-python3.5:
-    image:
-        python:3.5-slim
-    before_script:
-        -   python -m pip install -r requirements.txt
-    script:
-        -   PYTHONPATH=. pytest test
-    stage:
-        test
-
 python3.6:
     image:
         python:3.6-slim
