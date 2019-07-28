@@ -17,28 +17,26 @@ import numpy
 import helmpy
 from root_path import ROOT_PATH
 
-file_names = [
-    ROOT_PATH / 'data' / 'case' / 'case118.xlsx',
-    ROOT_PATH / 'data' / 'case' / 'case2869pegase.xlsx',
-    ROOT_PATH / 'data' / 'case' / 'case1354pegase.xlsx',
-    ROOT_PATH / 'data' / 'case' / 'case9.xlsx',
-]
-functions = [
-    helmpy.nr,
-    helmpy.nr_ds,
-    helmpy.helm_PV1,
-    helmpy.helm_PV2,
-    helmpy.helm_dsM1PV1,
-    helmpy.helm_dsM1PV2,
-    helmpy.helm_dsM2PV1,
-    helmpy.helm_dsM2PV2,
-]
 
 @pytest.mark.parametrize(
-    'file_name, ', file_names,
+    'file_name, ', [
+        ROOT_PATH / 'data' / 'case' / 'case118.xlsx',
+        ROOT_PATH / 'data' / 'case' / 'case2869pegase.xlsx',
+        ROOT_PATH / 'data' / 'case' / 'case1354pegase.xlsx',
+        ROOT_PATH / 'data' / 'case' / 'case9.xlsx',
+    ],
 )
 @pytest.mark.parametrize(
-    'function, ', functions,
+    'function, ', [
+        helmpy.nr,
+        helmpy.nr_ds,
+        helmpy.helm_PV1,
+        helmpy.helm_PV2,
+        helmpy.helm_dsM1PV1,
+        helmpy.helm_dsM1PV2,
+        helmpy.helm_dsM2PV1,
+        helmpy.helm_dsM2PV2,
+    ],
 )
 def test_helm_py(function, file_name):
     """
