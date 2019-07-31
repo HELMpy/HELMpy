@@ -129,8 +129,8 @@ def branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
     TB = Number_bus[ToBus]
     Ybr_list.append([FB, TB, np.zeros((2,2),dtype=complex)])
     Z = R + 1j*X
-    if(Tap==0 or Tap==1):
-        if(Z!=0):
+    if Tap == 0 or Tap == 1:
+        if Z != 0:
             Yseries_ft = 1/Z
             if(Shift_degree==0):
                 Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = -Yseries_ft
@@ -155,7 +155,7 @@ def branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
         Yshunt[TB][TB] +=  Bshunt_ft
     else:
         Tap_inv = 1/Tap
-        if(Z!=0):
+        if Z != 0:
             Yseries_no_tap = 1/Z
             Yseries_ft = Yseries_no_tap * Tap_inv
             if(Shift_degree==0):
@@ -657,6 +657,7 @@ def write_results_on_files():
     result.write("\n\nComparison between active power losses 'Ploss' and active power\nthrough branches and shunt elements 'Pmismatch' (MW):\t\t\t\t"+str(np.real(Ploss*100))+" = "+str(Pmismatch*100))
     result.close()
     print("\nResults have been written on the files:\n\t%s"%(txt_name))
+
 
 # main function
 def nr_ds(

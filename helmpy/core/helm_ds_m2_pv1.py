@@ -131,8 +131,8 @@ def branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
     TB = Number_bus[ToBus]
     Ybr_list.append([FB, TB, np.zeros((2,2),dtype=complex)])
     Z = R + 1j*X
-    if(Tap==0 or Tap==1):
-        if(Z!=0):
+    if Tap == 0 or Tap == 1:
+        if Z != 0:
             Yseries_ft = 1/Z
             if(Shift_degree==0):
                 Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = -Yseries_ft
@@ -173,7 +173,7 @@ def branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
         Yshunt[TB] +=  Bshunt_ft
     else:
         Tap_inv = 1/Tap
-        if(Z!=0):
+        if Z != 0:
             Yseries_no_tap = 1/Z
             Yseries_ft = Yseries_no_tap * Tap_inv
             if(Shift_degree==0):
@@ -369,7 +369,7 @@ def Unknowns_soluc():
 
 
 # Real voltage array for PV and PVLIM buses
-Vre_PV = np.zeros((N,N_coef), dtype=float)
+Vre_PV = np.zeros((N, N_coef), dtype=float)
 # Real voltage of PV and PVLIM buses computing
 def Calculo_Vre_PV(n): # coefficient n
     global Vre_PV, V_complex, V, list_gen
@@ -386,7 +386,7 @@ def Calculo_Vre_PV(n): # coefficient n
 
 
 # Actualized complex voltages array of each bus (Vre+Vim sum)
-V_complex = np.zeros((N,N_coef), dtype=complex)
+V_complex = np.zeros((N, N_coef), dtype=complex)
 # Complex voltages computing
 def compute_complex_voltages(n):  # coefficient n
     global V_complex, Vre_PV, coefficients, Buses_type, N
@@ -398,7 +398,7 @@ def compute_complex_voltages(n):  # coefficient n
 
 
 # Inverse voltages "W" array
-W = np.ones((N,N_coef), dtype=complex)
+W = np.ones((N, N_coef), dtype=complex)
 # W computing
 def calculate_inverse_voltages_w_array(n):
     global W, V_complex, N
@@ -600,9 +600,9 @@ def computing_voltages_mismatch():
     global series_large, Y_Vsp_PV, Soluc_no_eval, Vre_PV, Soluc_eval, coefficients, N
     global Mis, Ytrans_mod,V_complex, W, Pi, Si, Pg, Pd, Qg, Qd, V_complex_profile
     global first_check, pade_til, solve, list_coef, detailed_run_print, Flag_divergence, Q_limits
-    Vre_PV = np.zeros((N,N_coef), dtype=float)
-    V_complex = np.zeros((N,N_coef), dtype=complex)
-    W = np.ones((N,N_coef), dtype=complex)
+    Vre_PV = np.zeros((N, N_coef), dtype=float)
+    V_complex = np.zeros((N, N_coef), dtype=complex)
+    W = np.ones((N, N_coef), dtype=complex)
     Flag_recalculate = 1
     Flag_divergence = False
     Calculo_Vre_PV(0)

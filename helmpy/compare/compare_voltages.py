@@ -48,7 +48,7 @@ def main(
     M = np.zeros(len(magnitude_1))
     P_A = np.zeros(len(magnitude_1))
 
-    if(print_all):
+    if print_all:
         print("\n---------1---------")
         for i in range(len(magnitude_1)):
             print(i,magnitude_1[i],phase_angles_1[i])
@@ -57,12 +57,12 @@ def main(
         for i in range(len(magnitude_1)):
             print(i,magnitude_2[i],phase_angles_2[i])
 
-    if(print_all):
+    if print_all:
         print("\n----Differences between 1 and 2-----")
     for i in range(len(magnitude_1)):
         M[i] = abs(magnitude_1[i]-magnitude_2[i])
         P_A[i] = abs(phase_angles_1[i]-phase_angles_2[i])
-        if(print_all):
+        if print_all:
             print(i,"Magnitude:",M[i],"Phase Angles:",P_A[i])
 
     maximum_voltage_magnitude_difference = np.max(M)
