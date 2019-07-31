@@ -6,7 +6,7 @@ def test_compare_against_matpower():
     maximum_voltage_magnitude_difference, maximum_phase_angle_difference = \
         main(
             # MATPOWER file name
-            matpower_xlsx_file_path=ROOT_PATH / 'data' / 'results' / 'Results MATPOWER case118.xlsx',
+            matpower_csv_file_path=ROOT_PATH / 'data' / 'results' / 'Results MATPOWER case118 buses.csv',
             # HELMpy file name
             helm_csv_file_path=ROOT_PATH / 'data' / 'results' / 'Results HELM PV1 case118 1.02 1e-08 buses.csv',
             print_all=True,

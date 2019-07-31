@@ -191,7 +191,7 @@ def branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
 def Buses_xls():
     global Buses, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches
     global ref, N, N_generators, generators, Number_bus, Yshunt, Ytrans
-    global Y, Ytrans_unsy, xls_actual, PVLIM_buses, Pesp, PVLIM_flag
+    global Y, Ytrans_unsy, PVLIM_buses, Pesp, PVLIM_flag
     global Yre, Yimag, V_complex_profile, Vre, Vimag, scale, branches_buses, list_gen
     
     Pd = buses[2]/100*scale
@@ -626,27 +626,31 @@ def get_case_name_from_path_without_extension(case):
 
 
 # main function
-def nr(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxIterations=15, Enforce_Qlimits=True):
+def nr(
+    *,
+    Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxIterations=15, Enforce_Qlimits=True,
+    generators_file_path,
+    buses_file_path,
+    branches_file_path,
+):
     global Jaco, deltas_P_Q, deltas_tita_V, tita_degree, T_bucle_out
     global buses, branches, generators, N, N_generators, N_branches
     global detailed_run_print, Mis, case, scale, divergence, iterations_limit, Q_limits, list_iterations, iterations, V_complex_profile
-    if (type(GridName)is not str) or(type(Print_Details)is not bool) or(type(Mismatch)is not float) or(type(Results_FileName)is not str) or not( (type(Scale)is float) or(type(Scale)is int) ) or(type(MaxIterations) is not int) or(type(Enforce_Qlimits) is not bool):
+    if (type(Print_Details)is not bool) or(type(Mismatch)is not float) or(type(Results_FileName)is not str) or not( (type(Scale)is float) or(type(Scale)is int) ) or(type(MaxIterations) is not int) or(type(Enforce_Qlimits) is not bool):
         print("Erroneous argument type.")
         return
-    xls_actual = ROOT_PATH / 'data' / 'case' / GridName
+
     detailed_run_print = Print_Details
     Mis = Mismatch
-    if(Results_FileName==''):
-        case = GridName[0:-5]
-    else:
-        case = Results_FileName
+    case = generators_file_path[0:-len('.csv')]
     scale = Scale
     iterations_limit = MaxIterations
     Q_limits = Enforce_Qlimits
-    
-    buses = pd.read_excel(xls_actual, sheet_name='Buses', header=None)
-    branches = pd.read_excel(xls_actual, sheet_name='Branches', header=None)
-    generators = pd.read_excel(xls_actual, sheet_name='Generators', header=None)
+
+    generators = pd.read_csv(generators_file_path, header=None)
+    buses = pd.read_csv(buses_file_path, header=None)
+    branches = pd.read_csv(branches_file_path, header=None)
+
     N = len(buses.index)
     N_generators = len(generators.index)
     N_branches = len(branches.index)

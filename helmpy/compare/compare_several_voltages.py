@@ -33,17 +33,20 @@ def main(
     pd.set_option('display.max_columns',1000)
     pd.set_option('display.width',1000)
 
-    ############   Modify these files names   ###################
     # base profile
     file_base = base_profile_csv
     file_list = comparison_csv_list
 
-    data = pd.read_csv(file_base)
+    data = pd.read_csv(
+        file_base,
+        header=0,
+        index_col=0,
+    )
     magnitude_1 = data['Voltages Magnitude']
     phase_angles_1 = data["Voltages Phase Angle"]
 
     for file in file_list:
-        data = pd.read_csv(file)
+        data = pd.read_csv(file, header=0, index_col=0)
         magnitude_2 = data['Voltages Magnitude']
         phase_angles_2 = data["Voltages Phase Angle"]
 

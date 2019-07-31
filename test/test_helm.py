@@ -26,13 +26,34 @@ from helmpy.util.root_path import ROOT_PATH
 
 
 @pytest.mark.parametrize(
-    'file_name, ', [
-        ROOT_PATH / 'data' / 'case' / 'case118.xlsx',
-        ROOT_PATH / 'data' / 'case' / 'case2869pegase.xlsx',
-        ROOT_PATH / 'data' / 'case' / 'case1354pegase.xlsx',
-        ROOT_PATH / 'data' / 'case' / 'case9.xlsx',
+    'generators_file_path, branches_file_path, buses_file_path', [
+        (
+            ROOT_PATH / 'data' / 'case' / 'case9 generators.csv',
+            ROOT_PATH / 'data' / 'case' / 'case9 branches.csv',
+            ROOT_PATH / 'data' / 'case' / 'case9 buses.csv',
+        ),
+        (
+            ROOT_PATH / 'data' / 'case' / 'case118 generators.csv',
+            ROOT_PATH / 'data' / 'case' / 'case118 branches.csv',
+            ROOT_PATH / 'data' / 'case' / 'case118 buses.csv',
+        ),
+        (
+            ROOT_PATH / 'data' / 'case' / 'case1354pegase generators.csv',
+            ROOT_PATH / 'data' / 'case' / 'case1354pegase branches.csv',
+            ROOT_PATH / 'data' / 'case' / 'case1354pegase buses.csv',
+        ),
+        (
+                ROOT_PATH / 'data' / 'case' / 'case2869pegase generators.csv',
+                ROOT_PATH / 'data' / 'case' / 'case2869pegase branches.csv',
+                ROOT_PATH / 'data' / 'case' / 'case2869pegase buses.csv',
+        ),
     ],
-    ids=['case118', 'case2869pegase', 'case1354pegase', 'case9']
+    ids=[
+        'case9',
+        'case118',
+        'case1354pegase',
+        'case2869pegase',
+    ]
 )
 @pytest.mark.parametrize(
     'function, ', [
@@ -46,7 +67,12 @@ from helmpy.util.root_path import ROOT_PATH
         helm_ds_m2_pv2,
     ],
 )
-def test_helm_py(function, file_name):
+def test_helm_py(
+    function,
+    generators_file_path,
+    branches_file_path,
+    buses_file_path,
+):
     """
     Test the HELMpy package
 
@@ -56,13 +82,16 @@ def test_helm_py(function, file_name):
     random.seed(42)
     numpy.random.mtrand.seed(42)
 
-    result = function(str(file_name), Mismatch=1e-8, Scale=1.02, Print_Details=True)
+    result = function(
+        generators_file_path=str(generators_file_path),
+        buses_file_path=str(buses_file_path),
+        branches_file_path=str(branches_file_path),
+        Mismatch=1e-8,
+        Scale=1.02,
+        Print_Details=True,
+    )
     print(result)
 
     return
 
     # TODO Make assertions
-
-
-if __name__ == '__main__':
-    test_helm_py()

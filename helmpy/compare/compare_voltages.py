@@ -29,12 +29,13 @@ def main(
     pd.set_option('display.max_columns',1000)
     pd.set_option('display.width',1000)
 
-    ############   Modify these files names   ###################
     data1 = pd.read_csv(
         buses_csv_0_file_path,
+        header=0,
     )
     data2 = pd.read_csv(
         buses_csv_1_file_path,
+        header=0,
     )
 
     magnitude_1 = data1['Voltages Magnitude']
@@ -42,7 +43,7 @@ def main(
     magnitude_2 = data2['Voltages Magnitude']
     phase_angles_2 = data2["Voltages Phase Angle"]
 
-    print_all = False ###############################
+    print_all = False
 
     M = np.zeros(len(magnitude_1))
     P_A = np.zeros(len(magnitude_1))

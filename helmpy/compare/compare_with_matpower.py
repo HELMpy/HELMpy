@@ -16,7 +16,7 @@ import numpy as np
 
 def main(
     *,
-    matpower_xlsx_file_path,
+    matpower_csv_file_path,
     helm_csv_file_path,
     print_all,
 ):
@@ -24,13 +24,13 @@ def main(
     pd.set_option('display.max_columns',1000)
     pd.set_option('display.width',1000)
 
-    ############   Modify these files names   ###################
     data1 = pd.read_csv(
         helm_csv_file_path,
+        header=0,
+        index_col=0,
     )
-    data_matpower = pd.read_excel(
-        matpower_xlsx_file_path,
-        sheet_name='Buses',
+    data_matpower = pd.read_csv(
+        matpower_csv_file_path,
         header=None,
     )
 
