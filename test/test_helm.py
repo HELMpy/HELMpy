@@ -14,14 +14,14 @@ import random
 import pytest
 import numpy
 
-from helmpy.core.HELM_DS_M1_PV1 import helm_dsM1PV1
-from helmpy.core.HELM_DS_M1_PV2 import helm_dsM1PV2
-from helmpy.core.HELM_DS_M2_PV1 import helm_dsM2PV1
-from helmpy.core.HELM_DS_M2_PV2 import helm_dsM2PV2
-from helmpy.core.HELM_PV1 import helm_PV1
-from helmpy.core.HELM_PV2 import helm_PV2
-from helmpy.core.NR import nr
-from helmpy.core.NR_DS import nr_ds
+from helmpy.core.helm_ds_m1_pv1 import helm_ds_m1_pv1
+from helmpy.core.helm_ds_m1_pv2 import helm_ds_m1_pv2
+from helmpy.core.helm_ds_m2_pv1 import helm_ds_m2_pv1
+from helmpy.core.helm_ds_m2_pv2 import helm_ds_m2_pv2
+from helmpy.core.helm_pv1 import helm_pv1
+from helmpy.core.helm_pv2 import helm_pv2
+from helmpy.core.nr import nr
+from helmpy.core.nr_ds import nr_ds
 from helmpy.util.root_path import ROOT_PATH
 
 
@@ -38,12 +38,12 @@ from helmpy.util.root_path import ROOT_PATH
     'function, ', [
         nr,
         nr_ds,
-        helm_PV1,
-        helm_PV2,
-        helm_dsM1PV1,
-        helm_dsM1PV2,
-        helm_dsM2PV1,
-        helm_dsM2PV2,
+        helm_pv1,
+        helm_pv2,
+        helm_ds_m1_pv1,
+        helm_ds_m1_pv2,
+        helm_ds_m2_pv1,
+        helm_ds_m2_pv2,
     ],
 )
 def test_helm_py(function, file_name):

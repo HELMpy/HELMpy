@@ -17,7 +17,7 @@ import cmath as cm
 from time import time
 import warnings
 
-from helmpy.core.NR import get_case_name_from_path_without_extension
+from helmpy.core.nr import get_case_name_from_path_without_extension
 from helmpy.util.root_path import ROOT_PATH
 
 warnings.filterwarnings("ignore")

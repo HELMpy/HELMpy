@@ -18,7 +18,7 @@ import pandas as pd
 from time import time
 import warnings
 
-from helmpy.core.NR import get_case_name_from_path_without_extension
+from helmpy.core.nr import get_case_name_from_path_without_extension
 from helmpy.util.root_path import ROOT_PATH
 
 warnings.filterwarnings("ignore")
@@ -718,7 +718,7 @@ def write_results_on_files():
 
 T = 0 # time variable
 # Main loop
-def helm_PV1(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxCoefficients=100, Enforce_Qlimits=True):
+def helm_pv1(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxCoefficients=100, Enforce_Qlimits=True):
     global V_complex_profile, N, buses, branches, N_branches, N_coef, N_generators, generators, T, Flag_divergence
     global detailed_run_print, Mis, case, scale, N_coef, Q_limits
     if (type(GridName)is not str) or(type(Print_Details)is not bool) or(type(Mismatch)is not float) or(type(Results_FileName)is not str) or not( (type(Scale)is float) or(type(Scale)is int) ) or(type(MaxCoefficients) is not int) or(type(Enforce_Qlimits) is not bool):
