@@ -32,6 +32,7 @@ from helmpy.util.root_path import ROOT_PATH
         ROOT_PATH / 'data' / 'case' / 'case1354pegase.xlsx',
         ROOT_PATH / 'data' / 'case' / 'case9.xlsx',
     ],
+    ids=['case118', 'case2869pegase', 'case1354pegase', 'case9']
 )
 @pytest.mark.parametrize(
     'function, ', [
