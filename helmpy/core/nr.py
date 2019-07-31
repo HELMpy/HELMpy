@@ -23,7 +23,7 @@ pd.set_option('display.max_columns',1000)
 pd.set_option('display.width',1000)
 
 
-#Global Variables that will be the basic parameters of the main function
+# Global variables that will be the basic parameters of the main function
 detailed_run_print = False   #Print details on the run
 Mis = 1e-4      #Mismatch
 case = ''       #results file name
@@ -31,12 +31,12 @@ scale = 1       #load scale
 iterations_limit = 15  #Max number of iterations per convergence check
 Q_limits = True     #Checks Q generation limits
 
-#Global variables declaration
-N = 0; ref = 0; Y = 0;  Buses = [];
-Yshunt = []; Ytrans = []; V = []; tita = []; tita_degree = []; iterations = 0; 
-Pg = np.zeros(N); Pesp = np.copy(Pg); Qg = []; Pd = []; Qgmax = [];
-Qgmin = []; Qd = []; Shunt = []; dimension = 0;
-Pg_total = 0;  Qg_total = 0;  Pd_total = 0;
+# Global variables declaration
+N = 0; ref = 0; Y = 0;  Buses = []
+Yshunt = []; Ytrans = []; V = []; tita = []; tita_degree = []; iterations = 0
+Pg = np.zeros(N); Pesp = np.copy(Pg); Qg = []; Pd = []; Qgmax = []
+Qgmin = []; Qd = []; Shunt = []; dimension = 0
+Pg_total = 0;  Qg_total = 0;  Pd_total = 0
 deltas_P_Q = 0; Jaco = 0; known = []; unknown = []; PVLIM_flag = 0; PVLIM_buses = False
 deltas_tita_V = []; Plin_totales = 0; Qlin_totales = 0; Slin_total = 0
 Qg_total_2 = 0; Ilineas = []; divergence = False
@@ -181,14 +181,14 @@ def branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
         Yshunt[TB][TB] +=  Bshunt_t - Yseries_ft
 
 
-    if( TB not in branches_buses[FB] ):
+    if TB not in branches_buses[FB]:
         branches_buses[FB].append(TB)
-    if( FB not in branches_buses[TB] ):
+    if FB not in branches_buses[TB]:
         branches_buses[TB].append(FB)
 
 
 # Processing of .xlsx file data
-def Buses_xls():
+def preprocess_case_data():
     global Buses, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches
     global ref, N, N_generators, generators, Number_bus, Yshunt, Ytrans
     global Y, Ytrans_unsy, PVLIM_buses, Pesp, PVLIM_flag
@@ -363,11 +363,11 @@ def Convergence_Check():
     reached_error = True
     error_max = max(abs(deltas_P_Q))
     if(error_max > Mis):
-        if(detailed_run_print):
+        if detailed_run_print:
             print("Maximum error:", error_max)
         reached_error = False
     else:
-        if(detailed_run_print):
+        if detailed_run_print:
             print("Program converged with a maximum error of:", error_max)
 
     if(reached_error):
@@ -380,7 +380,7 @@ def Convergence_Check():
         stop_iterations = True
         divergence = True
     if( detailed_run_print and not(stop_iterations) ):
-        if(detailed_run_print):
+        if detailed_run_print:
             print("\nIteration number: %d"%(iterations))
 
     return stop_iterations
@@ -414,7 +414,7 @@ def Check_Generators_Limits():
     iterations = 0
     restart_NR = False
     if(PVLIM_buses):
-        if(detailed_run_print):
+        if detailed_run_print:
             print('\nChecking PVLIM buses reactive power Qg limits')
         if(PVLIM_flag > 0):
             for i in range(N):
@@ -430,7 +430,7 @@ def Check_Generators_Limits():
                             Qg[i] = Qgmax[i]
                         else:
                             Qg[i] = Qgmin[i]
-                        if(detailed_run_print):
+                        if detailed_run_print:
                             print('PVLIM bus %d exceeded its reactive power generation limit at %f MVAR. Exceeded limit: %f MVAR'%(i,Qg_anterior*100,Qg[i]*100))
             
     return restart_NR
@@ -503,7 +503,7 @@ def Qiny(i):
 
 
 # Computation of power flow trough branches and power balance
-def Power_balance():
+def power_balance():
     global V_complex_profile, Ybr_list, Power_branches, N_branches, Power_print, N, Shunt, Pd, Qd, Pg, Qg, K, Pmismatch, S_gen, S_load, S_mismatch, detailed_run_print, Pi, Qi, ref, Number_bus, Q_limits, list_gen
 
     slack = Number_bus[ref]
@@ -544,39 +544,38 @@ def Power_balance():
     Power_print['Q flow through branch and elements (MVAR)'] = Power_branches[:,7]
     P_losses_line = np.sum(Power_branches[:,6])/100
     Q_losses_line = np.sum(Power_branches[:,7]) * 1j /100
-    
 
     # Computation of power through shunt capacitors, reactors or conductantes, Power balanca
     S_shunt = 0
     for i in range(N):
-        if(Shunt[i]!=0):
+        if Shunt[i] != 0:
             S_shunt += V_complex_profile[i] * np.conj(V_complex_profile[i]*Shunt[i])
 
-    Pload   = np.sum(Pd)
+    Pload = np.sum(Pd)
     Pgen = np.sum(Pg) + Pi[slack] + Pd[slack]
 
-    Qload   = np.sum(Qd) * 1j
-    if not(Q_limits):
+    Qload = np.sum(Qd) * 1j
+    if not Q_limits:
         for i in list_gen:
             Qg[i] = Qi[i] + Qd[i]
-    Qgen    = (np.sum(Qg) + Qi[slack] + Qd[slack]) * 1j
+    Qgen = (np.sum(Qg) + Qi[slack] + Qd[slack]) * 1j
     
 
     S_gen = (Pgen + Qgen) * 100
     S_load = (Pload + Qload) * 100
     S_mismatch = (P_losses_line + Q_losses_line + S_shunt) * 100
 
-    if(detailed_run_print):
+    if detailed_run_print:
         print("\n\n\tPower balance:\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
         print("\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
 
 
-def Print_Voltage_Profile():
+def print_voltage_profile():
     global V, tita_degree, N, detailed_run_print
-    if(detailed_run_print):
+    if detailed_run_print:
         print("\n\tVoltage profile:")
         print("   Bus    Magnitude (p.u.)    Phase Angle (degrees)")
-        if(N<=31):
+        if N <= 31:
             for i in range(N):
                 print("%6s"%i,"\t     %1.6f"%V[i],"\t\t{:11.6f}".format(tita_degree[i]))
         else:
@@ -636,7 +635,15 @@ def nr(
     global Jaco, deltas_P_Q, deltas_tita_V, tita_degree, T_bucle_out
     global buses, branches, generators, N, N_generators, N_branches
     global detailed_run_print, Mis, case, scale, divergence, iterations_limit, Q_limits, list_iterations, iterations, V_complex_profile
-    if (type(Print_Details)is not bool) or(type(Mismatch)is not float) or(type(Results_FileName)is not str) or not( (type(Scale)is float) or(type(Scale)is int) ) or(type(MaxIterations) is not int) or(type(Enforce_Qlimits) is not bool):
+    if type(Print_Details) is not bool or\
+            type(Mismatch)is not float or\
+            type(Results_FileName)is not str or \
+            not(
+                    type(Scale) is float or
+                    type(Scale) is int
+            ) or \
+            type(MaxIterations) is not int or \
+            type(Enforce_Qlimits) is not bool:
         print("Erroneous argument type.")
         return
 
@@ -656,7 +663,7 @@ def nr(
     N_branches = len(branches.index)
 
     variables_initialization()
-    Buses_xls()
+    preprocess_case_data()
     # Loop that stops when the deltas P and Q be less than the specified mismatch, or the program diverges
     while(True):
         Jacobian()
@@ -672,7 +679,7 @@ def nr(
             Actualizacion_Resultados()
         if(divergence):
             break
-        if not(Q_limits):
+        if not Q_limits:
             print("Convergence has been reached")
             list_iterations.append(iterations)
             break
@@ -681,7 +688,7 @@ def nr(
             break
     tita_degree = np.rad2deg(tita)
     if not(divergence):
-        Print_Voltage_Profile()
-        Power_balance()
+        print_voltage_profile()
+        power_balance()
         write_results_on_files()
         return V_complex_profile
