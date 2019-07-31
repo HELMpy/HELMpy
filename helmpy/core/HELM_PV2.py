@@ -124,7 +124,7 @@ def Dimension():
 
 
 # Branches data processing to construct Ytrans, Yshunt, branches_buses and others
-def Branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
+def branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
     global Ytrans, Yshunt, Number_bus, branches_buses, Ybr_list
     global phase_barras, phase_dict
     FB = Number_bus[FromBus] 
@@ -260,7 +260,7 @@ def Buses_xls():
     Pg[slack] = 0
 
     for i in range(N_branches):
-        Branches_processor(i, branches[0][i], branches[1][i], branches[2][i], branches[3][i], branches[4][i], branches[8][i], branches[9][i])
+        branches_processor(i, branches[0][i], branches[1][i], branches[2][i], branches[3][i], branches[4][i], branches[8][i], branches[9][i])
 
     for i in range(N):
         branches_buses[i].sort()    # Variable that saves the branches
