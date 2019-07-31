@@ -17,7 +17,7 @@ import numpy as np
 def main(
     *,
     matpower_xlsx_file_path,
-    helm_xlsx_file_path,
+    helm_csv_file_path,
     print_all,
 ):
     pd.set_option('display.max_rows',1000)
@@ -25,9 +25,8 @@ def main(
     pd.set_option('display.width',1000)
 
     ############   Modify these files names   ###################
-    data1 = pd.read_excel(
-        helm_xlsx_file_path,
-        sheet_name="Buses",
+    data1 = pd.read_csv(
+        helm_csv_file_path,
     )
     data_matpower = pd.read_excel(
         matpower_xlsx_file_path,
@@ -71,11 +70,3 @@ def main(
     print("Highest Phase Angles difference: ", maximum_phase_angle_difference)
 
     return maximum_voltage_magnitude_difference, maximum_phase_angle_difference
-
-
-if __name__ == '__main__':
-    main(
-        matpower_xlsx_file_path='put the file name here.xlsx',
-        helm_xlsx_file_path='put the file name here.xlsx',
-        print_all=True,
-    )

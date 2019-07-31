@@ -16,6 +16,7 @@ import pandas as pd
 import warnings
 
 from helmpy.core.nr import get_case_name_from_path_without_extension
+from helmpy.core.write_results_to_csv import write_results_to_csv
 from helmpy.util.root_path import ROOT_PATH
 
 warnings.filterwarnings("ignore")
@@ -687,22 +688,18 @@ def Print_Voltage_Profile():
 
 def write_results_on_files():
     global V_polar_final, T, Mis, scale, list_coef, case, V_complex_profile, Power_print, Pmismatch, S_gen, S_load, S_mismatch 
-    # Voltage profile is written on .xlsx file
+    # Write voltage profile to csv file
     data = pd.DataFrame()
     data["Complex Voltages"] = V_complex_profile
     data["Voltages Magnitude"] = V_polar_final[:,0]
     data["Voltages Phase Angle"] = V_polar_final[:,1]
     case = get_case_name_from_path_without_extension(case)
-    xlsx_file_name = 'Results HELM PV1' + ' ' + \
-                     str(case) + ' ' + \
-                     str(scale) + ' ' + \
-                     str(Mis) + '.xlsx'
-    xlsx_file_path = ROOT_PATH / 'data' / 'results' / xlsx_file_name
-    file = pd.ExcelWriter(xlsx_file_path)
-    data.to_excel(file,sheet_name="Buses")
-    # Branch info is written on .xlsx file
-    Power_print.to_excel(file,sheet_name="Branches")
-    file.save()
+
+    write_results_to_csv(
+        Mis, Power_print, case, data, scale,
+        algorithm='HELM PV1',
+    )
+
     # Coefficients per PVLIM-PQ switches are written on a .txt file
     txt_name = "HELM PV1 "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
     result = open(ROOT_PATH / 'data' / 'txt' / txt_name,"w")
@@ -710,7 +707,7 @@ def write_results_on_files():
     result.write("\n\nPower balance:\n\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
     result.write("\n\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
     result.close()
-    print("\nResults have been written on the files:\n\t%s \n\t%s"%(xlsx_file_path,txt_name))
+    print("\nResults have been written on the files:\n\t%s"%(txt_name))
 
 
 

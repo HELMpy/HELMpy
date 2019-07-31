@@ -8,7 +8,7 @@ def test_compare_against_matpower():
             # MATPOWER file name
             matpower_xlsx_file_path=ROOT_PATH / 'data' / 'results' / 'Results MATPOWER case118.xlsx',
             # HELMpy file name
-            helm_xlsx_file_path=ROOT_PATH / 'data' / 'results' / 'Results HELM PV1 case118 1.02 1e-08.xlsx',
+            helm_csv_file_path=ROOT_PATH / 'data' / 'results' / 'Results HELM PV1 case118 1.02 1e-08 buses.csv',
             print_all=True,
         )
 

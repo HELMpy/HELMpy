@@ -18,15 +18,15 @@ from helmpy.util.root_path import ROOT_PATH
 def main(
     *,
     print_all,
-    base_profile_xlsx,
-    comparison_xlsx_list,
+    base_profile_csv,
+    comparison_csv_list,
 ):
     """
     Compare Several Voltages
 
     :param print_all:
-    :param base_profile_xlsx:
-    :param comparison_xlsx_list:
+    :param base_profile_csv:
+    :param comparison_csv_list:
     :return:
     """
     pd.set_option('display.max_rows',1000)
@@ -35,15 +35,15 @@ def main(
 
     ############   Modify these files names   ###################
     # base profile
-    file_base = base_profile_xlsx
-    file_list = comparison_xlsx_list
+    file_base = base_profile_csv
+    file_list = comparison_csv_list
 
-    data = pd.read_excel(file_base, sheet_name="Buses")
+    data = pd.read_csv(file_base)
     magnitude_1 = data['Voltages Magnitude']
     phase_angles_1 = data["Voltages Phase Angle"]
 
     for file in file_list:
-        data = pd.read_excel(file,sheet_name="Buses")
+        data = pd.read_csv(file)
         magnitude_2 = data['Voltages Magnitude']
         phase_angles_2 = data["Voltages Phase Angle"]
 
@@ -74,14 +74,3 @@ def main(
               maximum_phase_angle_difference)
 
         return maximum_voltage_magnitude_difference, maximum_phase_angle_difference
-
-
-if __name__ == '__main__':
-    main(
-        base_profile_xlsx= ROOT_PATH / 'data' / 'results' / 'Results HELM DS M2 PV2 case118 1.02 1e-08.xlsx',
-        comparison_xlsx_list=[
-            ROOT_PATH / 'data' / 'results' / 'Results HELM DS M1 PV1 case118 1.02 1e-08.xlsx',
-            ROOT_PATH / 'data' / 'results' / 'Results HELM DS M1 PV2 case118 1.02 1e-08.xlsx',
-        ],
-        print_all=False
-    )

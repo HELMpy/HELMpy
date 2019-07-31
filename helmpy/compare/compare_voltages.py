@@ -15,14 +15,14 @@ import numpy as np
 
 def main(
         *,
-        xlsx_0_file_path,
-        xlsx_1_file_path,
+        buses_csv_0_file_path,
+        buses_csv_1_file_path,
 ):
     """
     Compare Voltages
 
-    :param xlsx_0_file_path:
-    :param xlsx_1_file_path:
+    :param buses_csv_0_file_path:
+    :param buses_csv_1_file_path:
     :return:
     """
     pd.set_option('display.max_rows',1000)
@@ -30,13 +30,11 @@ def main(
     pd.set_option('display.width',1000)
 
     ############   Modify these files names   ###################
-    data1 = pd.read_excel(
-        xlsx_0_file_path,
-        sheet_name="Buses",
+    data1 = pd.read_csv(
+        buses_csv_0_file_path,
     )
-    data2 = pd.read_excel(
-        xlsx_1_file_path,
-        sheet_name="Buses",
+    data2 = pd.read_csv(
+        buses_csv_1_file_path,
     )
 
     magnitude_1 = data1['Voltages Magnitude']
@@ -72,10 +70,3 @@ def main(
     print("Highest Phase Angles difference: ", maximum_phase_angle_difference)
 
     return maximum_voltage_magnitude_difference, maximum_phase_angle_difference
-
-
-if __name__ == '__main__':
-    main(
-        xlsx_0_file_path='Results HELM DS M1 PV1 case118 1.02 1e-08.xlsx',
-        xlsx_1_file_path='Results HELM DS M1 PV2 case118 1.02 1e-08.xlsx',
-    )

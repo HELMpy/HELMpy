@@ -5,25 +5,25 @@ from helmpy.util.root_path import ROOT_PATH
 
 
 @pytest.mark.parametrize(
-    'xlsx_0_file_path, xlsx_1_file_path',
+    'csv_0_file_path, csv_1_file_path',
     [
         (
             ROOT_PATH / 'data' / 'results' /
-            'Results HELM DS M1 PV1 case118 1.02 1e-08.xlsx',
+            'Results HELM DS M1 PV1 case118 1.02 1e-08 buses.csv',
             ROOT_PATH / 'data' / 'results' /
-            'Results HELM DS M1 PV2 case118 1.02 1e-08.xlsx'
+            'Results HELM DS M1 PV2 case118 1.02 1e-08 buses.csv'
          ),
         (
             ROOT_PATH / 'data' / 'results' /
-            'Results HELM DS M2 PV1 case118 1.02 1e-08.xlsx',
+            'Results HELM DS M2 PV1 case118 1.02 1e-08 buses.csv',
             ROOT_PATH / 'data' / 'results' /
-            'Results HELM DS M2 PV2 case118 1.02 1e-08.xlsx'
+            'Results HELM DS M2 PV2 case118 1.02 1e-08 buses.csv'
         ),
         (
                 ROOT_PATH / 'data' / 'results' /
-                'Results HELM PV1 case118 1.02 1e-08.xlsx',
+                'Results HELM PV1 case118 1.02 1e-08 buses.csv',
                 ROOT_PATH / 'data' / 'results' /
-                'Results HELM PV2 case118 1.02 1e-08.xlsx'
+                'Results HELM PV2 case118 1.02 1e-08 buses.csv'
         ),
     ],
     ids=(
@@ -32,11 +32,11 @@ from helmpy.util.root_path import ROOT_PATH
         'helm pv1/pv2',
     )
 )
-def test_compare_voltages(xlsx_0_file_path, xlsx_1_file_path):
+def test_compare_voltages(csv_0_file_path, csv_1_file_path):
     maximum_voltage_magnitude_difference, maximum_phase_angle_difference = \
         main(
-            xlsx_0_file_path=xlsx_0_file_path,
-            xlsx_1_file_path=xlsx_1_file_path,
+            buses_csv_0_file_path=csv_0_file_path,
+            buses_csv_1_file_path=csv_1_file_path,
         )
 
     assert maximum_voltage_magnitude_difference < 1e-12
