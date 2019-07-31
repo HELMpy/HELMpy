@@ -766,8 +766,6 @@ def helm_pv2(
     buses = pd.read_csv(buses_file_path, header=None)
     branches = pd.read_csv(branches_file_path, header=None)
 
-    print(len(buses))
-
     N = len(buses.index)
     N_generators = len(generators.index)
     N_branches = len(branches.index)
