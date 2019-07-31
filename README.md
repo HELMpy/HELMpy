@@ -15,7 +15,7 @@ The developed code is properly commented and organized
 
 ## Compatibility
 
-This package is compatible with Python 3.5, 3.6 and 3.7.
+This package is compatible with Python 3.6 and 3.7.
 
 ## History
 
