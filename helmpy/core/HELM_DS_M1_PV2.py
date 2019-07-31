@@ -777,7 +777,7 @@ def write_results_on_files():
     data["Voltages Magnitude"] = V_polar_final[:,0]
     data["Voltages Phase Angle"] = V_polar_final[:,1]
     case = get_case_name_from_path_without_extension(case)
-    xlsx_file_name = 'Results HELM DS M1 PV2' + \
+    xlsx_file_name = 'Results HELM DS M1 PV2' + ' ' + \
                      str(case) + ' ' + \
                      str(scale) + ' ' + \
                      str(Mis) + '.xlsx'

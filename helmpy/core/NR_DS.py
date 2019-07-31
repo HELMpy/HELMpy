@@ -645,7 +645,7 @@ def write_results_on_files():
     data["Voltages Magnitude"] = V
     data["Voltages Phase Angle"] = tita_degree
     case = get_case_name_from_path_without_extension(case)
-    xlsx_file_name = 'Results NR DS' + \
+    xlsx_file_name = 'Results NR DS' + ' ' + \
                      str(case) + ' ' + \
                      str(scale) + ' ' + \
                      str(Mis) + '.xlsx'
