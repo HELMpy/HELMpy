@@ -33,7 +33,11 @@ from helmpy.util.root_path import ROOT_PATH
     )
 )
 def test_compare_voltages(xlsx_0_file_path, xlsx_1_file_path):
-    main(
-        xlsx_0_file_path=xlsx_0_file_path,
-        xlsx_1_file_path=xlsx_1_file_path,
-    )
+    maximum_voltage_magnitude_difference, maximum_phase_angle_difference = \
+        main(
+            xlsx_0_file_path=xlsx_0_file_path,
+            xlsx_1_file_path=xlsx_1_file_path,
+        )
+
+    assert maximum_voltage_magnitude_difference < 1e-12
+    assert maximum_phase_angle_difference < 1e-12

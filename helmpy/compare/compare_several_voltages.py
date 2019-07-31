@@ -66,10 +66,14 @@ def main(
             if(print_all):
                 print(i,"Magnitude:",M[i],"Phase Angles:",P_A[i])
 
-        print("Differences between \"%s\" y \"%s\""%(file_base,file))
-        print("Highest magnitude difference: ",np.max(M))
-        print("Highest Phase Angles difference: ",np.max(P_A))
-        print("\n\n")
+        maximum_voltage_magnitude_difference = np.max(M)
+        print("Highest magnitude difference: ",
+              maximum_voltage_magnitude_difference)
+        maximum_phase_angle_difference = np.max(P_A)
+        print("Highest Phase Angles difference: ",
+              maximum_phase_angle_difference)
+
+        return maximum_voltage_magnitude_difference, maximum_phase_angle_difference
 
 
 if __name__ == '__main__':
