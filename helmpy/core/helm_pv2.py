@@ -8,12 +8,13 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-import numpy as np
-from scipy.sparse.linalg import factorized
-from scipy.sparse import csc_matrix
 import cmath as cm
-import pandas as pd
 import warnings
+
+import numpy as np
+import pandas as pd
+from scipy.sparse import csc_matrix
+from scipy.sparse.linalg import factorized
 
 from helmpy.core.helm_pade import Pade
 from helmpy.core.nr import get_case_name_from_path_without_extension
