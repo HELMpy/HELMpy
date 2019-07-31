@@ -740,14 +740,14 @@ def write_results_on_files():
     # Coefficients per PVLIM-PQ switches are written on a .txt file
     txt_name = "HELM PV2 "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
     result = open(ROOT_PATH / 'data' / 'txt' / txt_name,"w")
-    result.write('Scale:'+str(scale)+'\tTime:'+str(T)+' sg'+'\tMismatch:'+str(Mis)+'\n'+'Coefficients per PVLIM-PQ switches: '+str(list_coef))
+    result.write('Scale:'+str(scale)+'\tMismatch:'+str(Mis)+'\n'+'Coefficients per PVLIM-PQ switches: '+str(list_coef))
     result.write("\n\nPower balance:\n\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
     result.write("\n\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
     result.close()
     print("\nResults have been written on the files:\n\t%s \n\t%s"%(xlsx_file_path,txt_name))
 
 
-T = 0 # time variable
+
 # Main loop
 
 def helm_pv2(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxCoefficients=100, Enforce_Qlimits=True):
@@ -786,8 +786,6 @@ def helm_pv2(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', 
         # Loop of coefficients computing until the mismatch is reached
         if(Computing_Voltages_Mismatch()):
             break
-    T = time() - T
-    print("\nRun time:",T,' sg')
     if not(Flag_divergence):
         Final_Results() # Separate each voltage value in magnitude and phase angle (degrees)
         Print_Voltage_Profile()
