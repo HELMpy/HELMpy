@@ -12,7 +12,6 @@ You should have received a copy of the GNU Affero General Public License along w
 
 # Compare Voltages with MATPOWER .xlsx result file
 
-# Import libraries and functions
 import pandas as pd
 import numpy as np
 
