@@ -1,4 +1,3 @@
-
 """
 HELMpy, open source package of power flow solvers developed on Python 3 
 Copyright (C) 2019 Tulio Molina tuliojose8@gmail.com and Juan José Ortega juanjoseop10@gmail.com
@@ -20,8 +19,8 @@ import pandas as pd
 from time import time
 import warnings
 
-from helmpy.NR import get_case_name_from_path_without_extension
-from helmpy.root_path import ROOT_PATH
+from helmpy.core.NR import get_case_name_from_path_without_extension
+from helmpy.util.root_path import ROOT_PATH
 
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
@@ -89,11 +88,11 @@ S_mismatch = 0
 
 # Arrays and data lists creation
 def Dimension():
-    global V, Pg, Qg, Pd, Qd, Buses_type, Qgmax, Qgmin, N, Y, Yshunt, Shunt
-    global Ytrans, Pg_sch, Number_bus, VVanterior
-    global N_branches, branches_buses, phase_barras
-    global Pi, conduc_buses, Yre, Yimag, V_complex_profile, list_gen, V_polar_final
-    global phase_dict, barras_CC, first_check, list_gen_remove, list_coef, Power_branches, Ybr_list
+    global V, Pg, Qg, Pd, Qd, Buses_type, Qgmax, Qgmin, Y, N, Yshunt, Shunt, Ytrans
+    global Pg_sch, Number_bus, VVanterior, N_branches
+    global branches_buses, phase_barras, Pi, conduc_buses, Yre, Yimag
+    global V_complex_profile, list_gen, V_polar_final, list_gen_remove, first_check
+    global list_coef, phase_dict, barras_CC, Power_branches, Ybr_list
     V = np.ones(N)
     Pg = np.zeros(N)
     Qg = np.zeros(N)
@@ -120,8 +119,8 @@ def Dimension():
     V_complex_profile = np.zeros(N, dtype=complex)
     list_gen = np.zeros(N_generators-1, dtype=int)
     V_polar_final = np.zeros((N,2), dtype=float)
-    first_check = True
     list_gen_remove = []
+    first_check = True
     list_coef = []
     Ybr_list = list()
     Power_branches = np.zeros((N_branches,8), dtype=float)
@@ -226,12 +225,12 @@ def Branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
     if( FB not in branches_buses[TB] ):
         branches_buses[TB].append(FB)
 
-# Processing of .xls file data
+# Processing of .xlsx file data
 def Buses_xls():
     global Buses_type, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches
-    global slack_bus, N, N_generators, generators, Number_bus, Yshunt, Ytrans
-    global Y, conduc_buses, Pg_sch, Yre, Yimag, slack, list_gen, num_gen
-    global scale
+    global slack_bus, N, N_generators, generators, Number_bus, Yshunt, Ytrans, Y
+    global conduc_buses, Pg_sch, slack, Yre, Yimag, slack, list_gen, num_gen
+    global barras_CC, scale
 
     Pd = buses[2]/100*scale
     Qd = buses[3]/100*scale
@@ -282,11 +281,11 @@ def Buses_xls():
     Yimag = np.imag(Y)
 
 # Modified Y matrix
-Ytrans_mod = np.zeros((2*N+1,2*N+1),dtype=float)
+Ytrans_mod = np.zeros((2*N+2,2*N+2),dtype=float)
 # Create modified Y matrix
 def Modif_Ytrans():
-    global Ytrans, Ytrans_mod, N, Buses_type, K, slack, solve, branches_buses, list_gen
-    Ytrans_mod = np.zeros((2*N+1,2*N+1),dtype=float)
+    global Ytrans, Ytrans_mod, N, Buses_type, K, slack, solve, branches_buses
+    Ytrans_mod = np.zeros((2*N+2,2*N+2),dtype=float)
 
     for i in range(N):
         if(Buses_type[i]=='Slack'):
@@ -304,15 +303,20 @@ def Modif_Ytrans():
                 Ytrans_mod[2*i][2*j]=Ytrans[i][j].real
                 Ytrans_mod[2*i][2*j + 1]=Ytrans[i][j].imag*-1
 
-    # Last row
-    for k in branches_buses[slack]:
-        Ytrans_mod[2*N][2*k] = Ytrans[slack][k].real
-        Ytrans_mod[2*N][2*k+1] = Ytrans[slack][k].imag*-1
+    # Penultimate row and last row
+    for j in branches_buses[slack]:
+        Ytrans_mod[2*N][2*j]=Ytrans[slack][j].real
+        Ytrans_mod[2*N][2*j + 1]=Ytrans[slack][j].imag*-1
+        Ytrans_mod[2*N + 1][2*j]=Ytrans[slack][j].imag
+        Ytrans_mod[2*N + 1][2*j + 1]=Ytrans[slack][j].real
 
-    # last Column
+    # Penultimate column
     for i in list_gen:
         Ytrans_mod[i*2][2*N]=-K[i]
     Ytrans_mod[2*N][2*N]=-K[slack]
+
+    # Last column
+    Ytrans_mod[2*N + 1][2*N + 1] = 1
 
     # Return a function for solving a sparse linear system, with Ytrans_mod pre-factorized.
     solve = factorized(csc_matrix(Ytrans_mod))
@@ -320,17 +324,17 @@ def Modif_Ytrans():
 # List of unknowns
 unknowns = []
 # Coefficients array
-coefficients = np.zeros((2*N+1,N_coef), dtype=float)
+coefficients = np.zeros((2*N+2,N_coef), dtype=float)
 # Evaluated solutions columns array
-Soluc_eval = np.zeros((2*N+1,N_coef), dtype=float)
+Soluc_eval = np.zeros((2*N+2,N_coef), dtype=float)
 # Functions list to evaluate
 Soluc_no_eval = []
 # Arrays and lists creation
 def Unknowns_soluc():
     global Buses_type, unknowns, N, N_coef, coefficients, Soluc_no_eval, Soluc_eval
     unknowns = []
-    coefficients = np.zeros((2*N+1,N_coef), dtype=float)
-    Soluc_eval = np.zeros((2*N+1,N_coef), dtype=float)
+    coefficients = np.zeros((2*N+2,N_coef), dtype=float)
+    Soluc_eval = np.zeros((2*N+2,N_coef), dtype=float)
     Soluc_no_eval = []
     for i in range(N):
         unknowns.append([i,'Vre'])
@@ -343,9 +347,11 @@ def Unknowns_soluc():
             Soluc_no_eval.append([i,Load_bus])
         else:
             Soluc_no_eval.append([i,Slack_bus])
-    Soluc_no_eval.append([N,P_Loss2])
-    unknowns.append([N,'PLoss'])
+    Soluc_no_eval.append([N,P_Loss_Q_slack])
+    unknowns.append([N,'Ploss'])
     coefficients[2*N][0] = 0
+    unknowns.append([N+1,'Qslack'])
+    coefficients[2*N+1][0] = 0
 
 # Actualized complex voltages array of each bus (Vre+Vim sum)
 V_complex = np.zeros((N,N_coef), dtype=complex)
@@ -368,61 +374,24 @@ def Calculate_W(n):
             W[i][n] = -aux
 
 # Function to evaluate the PV bus equation for the slack bus 
-def P_Loss2(nothing,n):  # coefficient n
-    global Soluc_eval, V_complex, coefficients, Ytrans, Pi, branches_buses, barras_CC
-    global phase_barras, phase_dict, conduc_buses, slack, Yshunt
+def P_Loss_Q_slack(nothing,n):  # coefficient n
+    global Pg, Pd, Soluc_eval, W, Yshunt, V_complex, coefficients, phase_barras
+    global phase_dict, Pi, K, slack, N
     i = slack
-
-    if(n>2):
-        CC = 0
-        PPP = 0
-        for x in range(1,n-1):
-            PPP += np.conj(V_complex[i][n-x]) * barras_CC[i][x]
+    aux = 0
+    aux_Ploss = 0
+    for k in range(1,n):
+        aux += coefficients[2*N + 1][k]*np.conj(W[i][n-k])
+        aux_Ploss += coefficients[N*2][k]*np.conj(W[i][n-k])
+    if(phase_barras[i]):
         PP = 0
-        for k in branches_buses[i]:
-            PP += Ytrans[i][k] * V_complex[k][n-1]
-        barras_CC[i][n-1] = PP
-        PPP += np.conj(V_complex[i][1]) * PP
-        CC -= PPP.real
-        #Valor Shunt
-        if(conduc_buses[i]):
-            CC -= np.real(Yshunt[i]) * ( VVanterior[i] + 2*V_complex[i][n-1].real )
-        #Valores phase
-        if(phase_barras[i]):  
-            PPP = 0
-            for x in range(n):
-                PP = 0
-                for k in range(len(phase_dict[i][0])):
-                    PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1-x]
-                PPP += np.conj(V_complex[i][x]) * PP
-            CC -= PPP.real
-    elif(n==1):
-        CC = Pi[i] - np.real(Yshunt[i])
-        #Valores phase
-        if(phase_barras[i]):
-            for valor in phase_dict[i][1]:
-                CC -= valor.real
-    elif(n==2):
-        CC = 0
-        PP = 0
-        for k in branches_buses[i]:
-            PP += Ytrans[i][k] * V_complex[k][1]
-        barras_CC[i][1] = PP
-        CC -= ( np.conj(V_complex[i][1]) * PP ).real
-        #Valor Shunt
-        if(conduc_buses[i]):
-            CC -= np.real(Yshunt[i])*2*V_complex[i][1].real
-        #Valores phase
-        if(phase_barras[i]):
-            PPP = 0
-            for x in range(n):
-                PP = 0
-                for k in range(len(phase_dict[i][0])):
-                    PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1-x]
-                PPP += np.conj(V_complex[i][x]) * PP
-            CC -= PPP.real
-
-    Soluc_eval[2*N][n] = CC
+        for k in range(len(phase_dict[i][0])):
+            PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1]
+        result = Pi[i]*np.conj(W[i][n-1]) - Yshunt[i]*V_complex[i][n-1]  - PP - aux*1j + K[i]*aux_Ploss
+    else:
+        result = Pi[i]*np.conj(W[i][n-1]) - Yshunt[i]*V_complex[i][n-1] - aux*1j + K[i]*aux_Ploss
+    Soluc_eval[2*N + 1][n] = np.imag(result)
+    Soluc_eval[2*N][n] = np.real(result)
 
 # Function to evaluate the slack bus equation 
 def Slack_bus(i,n):  # bus i, coefficient n
@@ -446,8 +415,8 @@ def Load_bus(i,n):  # bus i, coefficient n
 
 # Function to evaluate the PV buses equation 
 def Gen_bus2(i,n):  # bus i, coefficient n
-    global Pg, Pd, Soluc_eval, V_complex, coefficients, V, Ytrans, Pi, branches_buses
-    global barras_CC, VVanterior, phase_barras, phase_dict, conduc_buses
+    global Pg, Pd, Soluc_eval, V_complex, coefficients, V, Ytrans, conduc_buses
+    global branches_buses, barras_CC, VVanterior, phase_barras, phase_dict, Pi
 
     if(n>2):
         CC = 0
@@ -625,8 +594,8 @@ series_large = 0
 # Loop of coefficients computing until the mismatch is reached
 def Computing_Voltages_Mismatch():
     global series_large, Soluc_no_eval, Vre_PV, Soluc_eval, coefficients, N, Mis
-    global Ytrans_mod, solve,V_complex, W, Pi, Si, Pg, Pd, Qg, Qd
-    global V_complex_profile, first_check, pade_til, list_coef, detailed_run_print, Flag_divergence, Q_limits
+    global Ytrans_mod, V_complex, W, Pi, Si, Pg, Pd, Qg, Qd, V_complex_profile
+    global first_check, pade_til, solve, list_coef, detailed_run_print, Flag_divergence, Q_limits
     V_complex = np.zeros((N,N_coef), dtype=complex)
     W = np.ones((N,N_coef), dtype=complex)
     Flag_recalculate = 1
@@ -645,7 +614,7 @@ def Computing_Voltages_Mismatch():
             Soluc_no_eval[i][1](Soluc_no_eval[i][0],coef_actual)
 
         # New column of coefficients
-        coefficients[:,coef_actual] =solve(Soluc_eval[:,coef_actual])
+        coefficients[:,coef_actual] = solve(Soluc_eval[:,coef_actual])
 
         Voltages_complex(coef_actual)
         Calculate_W(coef_actual)
@@ -701,10 +670,10 @@ def Computing_Voltages_Mismatch():
             Flag_divergence = 1
             break
     return Flag_recalculate
-
+ 
 # Computation of power flow trough branches and power balance
 def Power_balance():
-    global V_complex_profile, Ybr_list, Power_branches, N_branches, Power_print, N, Shunt, slack, Pd, Qd, Pg, Qg, K, Pmismatch, S_gen, S_load, S_mismatch, Ploss, detailed_run_print, Q_limits, list_gen
+    global V_complex_profile, Ybr_list, Power_branches, N_branches, Power_print, N, Shunt, slack, Pd, Qd, Pg, Qg, K, Pmismatch, S_gen, S_load, S_mismatch, Ploss, detailed_run_prin, Q_limits, list_gen
 
 
     for branch in range(N_branches):
@@ -756,14 +725,15 @@ def Power_balance():
     Pload   = np.sum(Pd)
     Pgen = 0
     for i in range(N):
-        Pgen  += Pg[i] + K[i]*Pmismatch
+        Pgen  += Pg[i] + K[i]*Pmismatch ################## esto no para clasicos
 
-    Qload   = np.sum(Qd) * 1j
+    Qload   = np.sum(Qd) * 1j   
     if not(Q_limits):
         Voltages_profile()
         for i in list_gen:
             Qg[i] = Q_iny(i) + Qd[i]
     Qgen    = (np.sum(Qg) + Q_iny(slack) + Qd[slack]) * 1j
+
 
     S_gen = (Pgen + Qgen) * 100
     S_load = (Pload + Qload) * 100
@@ -800,7 +770,6 @@ def Print_Voltage_Profile():
             for i in range(N-14,N):
                 print("%6s"%i,"\t     %1.6f"%V_polar_final[i,0],"\t\t{:11.6f}".format(V_polar_final[i,1]))
 
-
 def write_results_on_files():
     global V_polar_final, T, Mis, scale, list_coef, case, V_complex_profile, Power_print, Pmismatch, S_gen, S_load, S_mismatch, Ploss
     # Voltage profile is written on .xlsx file
@@ -809,7 +778,7 @@ def write_results_on_files():
     data["Voltages Magnitude"] = V_polar_final[:,0]
     data["Voltages Phase Angle"] = V_polar_final[:,1]
     case = get_case_name_from_path_without_extension(case)
-    xlsx_file_name = 'Results HELM DS M2 PV2' + \
+    xlsx_file_name = 'Results HELM DS M1 PV2' + \
                      str(case) + ' ' + \
                      str(scale) + ' ' + \
                      str(Mis) + '.xlsx'
@@ -820,7 +789,7 @@ def write_results_on_files():
     Power_print.to_excel(file,sheet_name="Branches")
     file.save()
     # Coefficients per PVLIM-PQ switches are written on a .txt file
-    txt_name = "HELM DS M2 PV2 "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
+    txt_name = "HELM DS M1 PV2 "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
     result = open(ROOT_PATH / 'data' / 'txt' / txt_name,"w")
     result.write('Scale:'+str(scale)+'\tTime:'+str(T)+' sg'+'\tMismatch:'+str(Mis)+'\n'+'Coefficients per PVLIM-PQ switches: '+str(list_coef))
     result.write("\n\nPower balance:\n\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
@@ -831,7 +800,7 @@ def write_results_on_files():
 
 T = 0 # time variable
 # Main loop
-def helm_dsM2PV2(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxCoefficients=100, Enforce_Qlimits=True, DSB_model=True):
+def helm_dsM1PV2(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxCoefficients=100, Enforce_Qlimits=True, DSB_model=True):
     global V_complex_profile, N, buses, branches, N_branches, N_coef, N_generators, generators, T, Flag_divergence
     global detailed_run_print, Mis, case, scale, N_coef, Q_limits
     if (type(GridName)is not str) or(type(Print_Details)is not bool) or(type(Mismatch)is not float) or(type(Results_FileName)is not str) or not( (type(Scale)is float) or(type(Scale)is int) ) or(type(MaxCoefficients) is not int) or(type(DSB_model) is not bool) or(type(Enforce_Qlimits) is not bool):

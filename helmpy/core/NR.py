@@ -14,14 +14,12 @@ You should have received a copy of the GNU Affero General Public License along w
 # Import libraries and functions
 import pandas as pd
 import numpy as np
-from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
 import cmath as cm
 from time import time
 import warnings
 
-from helmpy.NR import get_case_name_from_path_without_extension
-from helmpy.root_path import ROOT_PATH
+from helmpy.util.root_path import ROOT_PATH
 
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
@@ -39,13 +37,13 @@ Q_limits = True     #Checks Q generation limits
 
 #Global variables declaration
 N = 0; ref = 0; Y = 0;  Buses = [];
-Yshunt = []; Ytrans = []; V = []; tita = []; tita_degree = []; iterations = 0;
+Yshunt = []; Ytrans = []; V = []; tita = []; tita_degree = []; iterations = 0; 
 Pg = np.zeros(N); Pesp = np.copy(Pg); Qg = []; Pd = []; Qgmax = [];
-Qgmin = []; Qd = []; Ploss = 0; Shunt = []; dimension = 0;
+Qgmin = []; Qd = []; Shunt = []; dimension = 0;
 Pg_total = 0;  Qg_total = 0;  Pd_total = 0;
 deltas_P_Q = 0; Jaco = 0; known = []; unknown = []; PVLIM_flag = 0; PVLIM_buses = False
-deltas_Ploss_tita_V = []; Plin_totales = 0; Qlin_totales = 0; Slin_total = 0
-Qg_total_2 = 0; Ilineas = []; divergence = False; K_factors = []
+deltas_tita_V = []; Plin_totales = 0; Qlin_totales = 0; Slin_total = 0
+Qg_total_2 = 0; Ilineas = []; divergence = False
 buses = 0
 branches = 0
 N_branches = 0
@@ -80,11 +78,10 @@ list_gen = np.zeros(1, dtype=int)
 def variables_initialization():
     global N, ref, Buses, V, tita, Pg, Pesp, Qg, Pd, Qd, Qgmax, Qgmin, Shunt, dimension, Y
     global deltas_P_Q, Jaco, known, unknown, PVLIM_flag, PVLIM_buses, iterations
-    global K_factors, Yshunt, Ytrans, Ploss
-    global Number_bus, Ytrans_unsy, jaco_funct_store, Gen_contribute, Vre, Vimag
-    global V_complex_profile, Yre, Yimag, Pi, Qi, branches_buses, list_iterations, Power_branches, Ybr_list, list_gen
+    global Yshunt, Ytrans, Number_bus
+    global Ytrans_unsy, jaco_funct_store, Gen_contribute, Vre, Vimag, V_complex_profile
+    global Yre, Yimag, Pi, Qi, branches_buses, list_iterations, Power_branches, Ybr_list, list_gen
 
-    Ploss = 0
     dimension = 0
     deltas_P_Q = 0
     Jaco = 0
@@ -96,7 +93,6 @@ def variables_initialization():
     ref = 0
     PVLIM_buses = False
     Buses = [0 for i in range(N)]
-    K_factors = np.zeros(N, dtype=float)
     V = np.ones(N)
     tita = np.zeros(N)
     Pg = np.zeros(N)
@@ -198,10 +194,10 @@ def Branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
 # Processing of .xlsx file data
 def Buses_xls():
     global Buses, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches
-    global ref, N, N_generators, generators, Number_bus, Yshunt, Ytrans, Y
-    global Ytrans_unsy, xls_actual, PVLIM_buses, Pesp, PVLIM_flag
+    global ref, N, N_generators, generators, Number_bus, Yshunt, Ytrans
+    global Y, Ytrans_unsy, xls_actual, PVLIM_buses, Pesp, PVLIM_flag
     global Yre, Yimag, V_complex_profile, Vre, Vimag, scale, branches_buses, list_gen
-
+    
     Pd = buses[2]/100*scale
     Qd = buses[3]/100*scale
     Shunt = buses[5]*1j/100 + buses[4]/100
@@ -251,27 +247,19 @@ def Buses_xls():
 # Structure and dimensions of the jacobian
 def Jacobian():
     global Buses, known, unknown, dimension, deltas_P_Q, Jaco, branches_buses
-    global known_dict, unknown_dict
+    global known_dict, unknown_dict, Number_bus, ref
     dimension = 0
     known = []
     unknown = []
     known_dict = dict()
     unknown_dict = dict()
-
-    unknown.append(['dPloss',0])
-    dimension += 1
+    
     pos_known = 0
-    pos_unknown = 1
+    pos_unknown = 0
+    slack = Number_bus[ref] 
 
     for i in range(N):
-        if(Buses[i]=='Reference'):
-            known.append(['dP',i])
-            
-            known_dict[i] = [['dP', pos_known]]
-            pos_known += 1
-            unknown_dict[i] = [['dPloss', 0]]    #not used
-            
-        else:
+        if(Buses[i]!='Reference'):
             known.append(['dP',i])
             unknown.append(['dtita',i])
 
@@ -291,6 +279,9 @@ def Jacobian():
             unknown_dict[i].append(['dV',pos_unknown])
             pos_unknown += 1
             dimension += 1
+    
+    known_dict[slack] = [['nada', 0]]   #not used
+    unknown_dict[slack] = [['nada', 0]]   #not used
 
 
     deltas_P_Q = np.zeros(dimension,dtype=float)
@@ -299,8 +290,7 @@ def Jacobian():
 
 # Store the corresponding function of each entry of the jacobian
 def Jacobian_Functions():
-    global jaco_funct_store, Jaco, branches_buses, known_dict, unknown_dict, Number_bus, ref
-    slack = Number_bus[ref]
+    global jaco_funct_store, Jaco, branches_buses, known_dict, unknown_dict
     jaco_funct_store = []
 
     for i in range(N):
@@ -343,7 +333,7 @@ def Jacobian_Functions():
 
 
 def Compute_Iterative_Jacobian_Entries():
-    global Jaco, jaco_funct_store, K_factors, Gen_contribute
+    global Jaco, jaco_funct_store
     # Compute jacobian entries
     for i in range(len(jaco_funct_store)):
         Funct_actual = jaco_funct_store[i][0]
@@ -352,40 +342,11 @@ def Compute_Iterative_Jacobian_Entries():
         position_i = jaco_funct_store[i][3]
         position_j = jaco_funct_store[i][4]
         Jaco[position_i][position_j] = Funct_actual(bus_i,bus_j)
-    for i in range(len(Gen_contribute)):
-        Jaco[Gen_contribute[i]][0] = K_factors[Gen_contribute[i]]
-
-
-def Compute_K_factors():
-    global Pg, Buses, ref, Pd, K_factors, Number_bus, Gen_contribute, Pesp, N
-    slack = Number_bus[ref]
-    Pg_de_Barras_PV = 0
-    K_factors = np.zeros(N, dtype=float)
-    Gen_contribute = []
-    Pg = np.copy(Pesp)
-    Pg[slack] = np.sum(Pd) - np.sum(Pg)
-
-    for i in range(N):
-        if ((Buses[i]!='PQ') and (Pg[i]>0)):
-            Pg_de_Barras_PV += Pg[i]
-            Gen_contribute.append(i)
-
-    for i in range(len(Gen_contribute)):
-        K_factors[Gen_contribute[i]] = Pg[Gen_contribute[i]]/Pg_de_Barras_PV
-
-
-# Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
-def K_slack_1():
-    global K_factors, ref, Number_bus, Gen_contribute
-    slack = Number_bus[ref]
-    Gen_contribute.append(slack)
-    K_factors = np.zeros(N, dtype=float)
-    K_factors[slack] = 1
 
 
 def Convergence_Check():
     global known, deltas_P_Q, Mis, iterations, detailed_run_print
-    global divergence, Pi, Qi, Pd, Qd, Pg, Qg, N, K_factors, Ploss, iterations_limit
+    global divergence, Pi, Qi, Pd, Qd, Pg, Qg, N, iterations_limit
 
     stop_iterations = False
     divergence = False
@@ -398,7 +359,7 @@ def Convergence_Check():
     for i in range(dimension):
         bus_i = known[i][1]
         if(known[i][0]=='dP'):
-            deltas_P_Q[i] = Pg[bus_i] + K_factors[bus_i]*Ploss - Pd[bus_i] - Pi[bus_i]
+            deltas_P_Q[i] = Pg[bus_i] - Pd[bus_i] - Pi[bus_i]
         else:
             deltas_P_Q[i] = Qg[bus_i] - Qd[bus_i] - Qi[bus_i]
 
@@ -429,19 +390,15 @@ def Convergence_Check():
     return stop_iterations
 
 
-# Voltages and phase angles results actualization on each iteration
+# Voltages, phase angles and Ploss results actualization on each iteration
 def Actualizacion_Resultados():
-    global unknown, deltas_Ploss_tita_V, dimension, tita, V, Ploss, V_complex_profile, Vre, Vimag, N
+    global unknown, deltas_tita_V, dimension, tita, V, V_complex_profile, Vre, Vimag, N
     
     result = []    
     for i in range(dimension):
-        result.append([unknown[i][0],unknown[i][1],deltas_Ploss_tita_V[i]])
-
-    Ploss -= deltas_Ploss_tita_V[0]
+        result.append([unknown[i][0],unknown[i][1],deltas_tita_V[i]])
 
     for j in range(dimension):
-        if(result[j][0]=='dPloss'):
-            continue
         if(result[j][0]=='dtita'):
             tita[result[j][1]] += result[j][2]
         else:
@@ -551,10 +508,10 @@ def Qiny(i):
 
 # Computation of power flow trough branches and power balance
 def Power_balance():
-    global V_complex_profile, Ybr_list, Power_branches, N_branches, Power_print, N, Shunt, Pd, Qd, Pg, Qg, K_factors, Pmismatch, S_gen, S_load, S_mismatch, Ploss, detailed_run_print, Qi, ref, Number_bus, Q_limits, list_gen
+    global V_complex_profile, Ybr_list, Power_branches, N_branches, Power_print, N, Shunt, Pd, Qd, Pg, Qg, K, Pmismatch, S_gen, S_load, S_mismatch, detailed_run_print, Pi, Qi, ref, Number_bus, Q_limits, list_gen
 
     slack = Number_bus[ref]
-
+    
     for branch in range(N_branches):
 
         Bus_from =  Power_branches[branch][0] = int(Ybr_list[branch][0])
@@ -599,18 +556,15 @@ def Power_balance():
         if(Shunt[i]!=0):
             S_shunt += V_complex_profile[i] * np.conj(V_complex_profile[i]*Shunt[i])
 
-    Pmismatch = P_losses_line + np.real(S_shunt)
-
     Pload   = np.sum(Pd)
-    Pgen = 0
-    for i in range(N):
-        Pgen  += Pg[i] + K_factors[i]*Pmismatch
+    Pgen = np.sum(Pg) + Pi[slack] + Pd[slack]
 
     Qload   = np.sum(Qd) * 1j
     if not(Q_limits):
         for i in list_gen:
             Qg[i] = Qi[i] + Qd[i]
     Qgen    = (np.sum(Qg) + Qi[slack] + Qd[slack]) * 1j
+    
 
     S_gen = (Pgen + Qgen) * 100
     S_load = (Pload + Qload) * 100
@@ -619,7 +573,6 @@ def Power_balance():
     if(detailed_run_print):
         print("\n\n\tPower balance:\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
         print("\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
-        print("\nComparison between active power losses 'Ploss' and active power\nthrough branches and shunt elements 'Pmismatch' (MW):\t\t\t\t"+str(np.real(Ploss*100))+" = "+str(Pmismatch*100))
 
 
 def Print_Voltage_Profile():
@@ -641,14 +594,14 @@ def Print_Voltage_Profile():
 
 
 def write_results_on_files():
-    global V_complex_profile, V, tita_degree, scale, T_bucle_out, list_iterations, Mis, case, Power_print, Pmismatch, S_gen, S_load, S_mismatch, Ploss
+    global V_complex_profile, V, tita_degree, scale, T_bucle_out, list_iterations, Mis, case, Power_print, Pmismatch, S_gen, S_load, S_mismatch
     # Voltage profile is written on a .xlsx file
     data = pd.DataFrame()
     data["Complex Voltages"] = V_complex_profile
     data["Voltages Magnitude"] = V
     data["Voltages Phase Angle"] = tita_degree
     case = get_case_name_from_path_without_extension(case)
-    xlsx_file_name = 'Results NR DS' + \
+    xlsx_file_name = 'Results NR ' + \
                      str(case) + ' ' + \
                      str(scale) + ' ' + \
                      str(Mis) + '.xlsx'
@@ -659,21 +612,33 @@ def write_results_on_files():
     Power_print.to_excel(file,sheet_name="Branches")
     file.save()
     # time and iterations are written on a .txt file
-    txt_name = "NR DS "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
+    txt_name = "NR "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
     result = open(ROOT_PATH / 'data' / 'txt' / txt_name,"w")
     result.write('Scale: '+str(scale)+'\tTime: '+str(T_bucle_out)+' sg'+'\tMismatch: '+str(Mis)+'\nIterations per PVLIM-PQ switches: '+str(list_iterations))
     result.write("\n\nPower balance:\n\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
     result.write("\n\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
-    result.write("\n\nComparison between active power losses 'Ploss' and active power\nthrough branches and shunt elements 'Pmismatch' (MW):\t\t\t\t"+str(np.real(Ploss*100))+" = "+str(Pmismatch*100))
     result.close()
     print("\nResults have been written on the files:\n\t%s \n\t%s"%(xlsx_file_path,txt_name))
 
+
+def get_case_name_from_path_without_extension(case):
+    """
+    Remove absolute path prefix from case file
+
+    :param case:
+    :return: cleaned case name
+    """
+
+    prefix = ROOT_PATH / 'data' / 'case'
+    return case[len(str(prefix)) + 1:]
+
+
 # main function
-def nr_ds(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxIterations=15, Enforce_Qlimits=True, DSB_model=True):
-    global Jaco, deltas_P_Q, deltas_Ploss_tita_V, tita_degree, T_bucle_out, solve
+def nr(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxIterations=15, Enforce_Qlimits=True):
+    global Jaco, deltas_P_Q, deltas_tita_V, tita_degree, T_bucle_out
     global buses, branches, generators, N, N_generators, N_branches
     global detailed_run_print, Mis, case, scale, divergence, iterations_limit, Q_limits, list_iterations, iterations, V_complex_profile
-    if (type(GridName)is not str) or(type(Print_Details)is not bool) or(type(Mismatch)is not float) or(type(Results_FileName)is not str) or not( (type(Scale)is float) or(type(Scale)is int) ) or(type(MaxIterations) is not int) or(type(DSB_model) is not bool) or(type(Enforce_Qlimits) is not bool):
+    if (type(GridName)is not str) or(type(Print_Details)is not bool) or(type(Mismatch)is not float) or(type(Results_FileName)is not str) or not( (type(Scale)is float) or(type(Scale)is int) ) or(type(MaxIterations) is not int) or(type(Enforce_Qlimits) is not bool):
         print("Erroneous argument type.")
         return
     xls_actual = ROOT_PATH / 'data' / 'case' / GridName
@@ -686,7 +651,7 @@ def nr_ds(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Sca
     scale = Scale
     iterations_limit = MaxIterations
     Q_limits = Enforce_Qlimits
-
+    
     buses = pd.read_excel(xls_actual, sheet_name='Buses', header=None)
     branches = pd.read_excel(xls_actual, sheet_name='Branches', header=None)
     generators = pd.read_excel(xls_actual, sheet_name='Generators', header=None)
@@ -699,20 +664,16 @@ def nr_ds(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Sca
     # Loop that stops when the deltas P and Q be less than the specified mismatch, or the program diverges
     T_bucle_in = time()
     while(True):
-        Compute_K_factors()
-        # Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
-        if not(DSB_model):
-            K_slack_1()
         Jacobian()
-        Jacobian_Functions() 
+        Jacobian_Functions()
         while(True):
             if( Convergence_Check() ): # Check convergence and iterations number
                 break # Stop iterations
 
             Compute_Iterative_Jacobian_Entries()
-            
-            deltas_Ploss_tita_V = spsolve(Jaco,deltas_P_Q)
-            
+
+            deltas_tita_V = spsolve(Jaco,deltas_P_Q)
+
             Actualizacion_Resultados()
         if(divergence):
             break

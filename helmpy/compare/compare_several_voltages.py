@@ -1,4 +1,3 @@
-
 """
 HELMpy, open source package of power flow solvers developed on Python 3 
 Copyright (C) 2019 Tulio Molina tuliojose8@gmail.com and Juan José Ortega juanjoseop10@gmail.com
@@ -13,7 +12,7 @@ You should have received a copy of the GNU Affero General Public License along w
 import pandas as pd
 import numpy as np
 
-from helmpy.root_path import ROOT_PATH
+from helmpy.util.root_path import ROOT_PATH
 
 
 def main(

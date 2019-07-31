@@ -14,15 +14,15 @@ import random
 import pytest
 import numpy
 
-from helmpy.HELM_DS_M1_PV1 import helm_dsM1PV1
-from helmpy.HELM_DS_M1_PV2 import helm_dsM1PV2
-from helmpy.HELM_DS_M2_PV1 import helm_dsM2PV1
-from helmpy.HELM_DS_M2_PV2 import helm_dsM2PV2
-from helmpy.HELM_PV1 import helm_PV1
-from helmpy.HELM_PV2 import helm_PV2
-from helmpy.NR import nr
-from helmpy.NR_DS import nr_ds
-from helmpy.root_path import ROOT_PATH
+from helmpy.core.HELM_DS_M1_PV1 import helm_dsM1PV1
+from helmpy.core.HELM_DS_M1_PV2 import helm_dsM1PV2
+from helmpy.core.HELM_DS_M2_PV1 import helm_dsM2PV1
+from helmpy.core.HELM_DS_M2_PV2 import helm_dsM2PV2
+from helmpy.core.HELM_PV1 import helm_PV1
+from helmpy.core.HELM_PV2 import helm_PV2
+from helmpy.core.NR import nr
+from helmpy.core.NR_DS import nr_ds
+from helmpy.util.root_path import ROOT_PATH
 
 
 @pytest.mark.parametrize(
