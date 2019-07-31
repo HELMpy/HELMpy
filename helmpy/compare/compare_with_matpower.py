@@ -8,8 +8,6 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-
-
 # Compare Voltages with MATPOWER .xlsx result file
 
 import pandas as pd

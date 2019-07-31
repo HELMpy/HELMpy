@@ -8,13 +8,10 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-
-
 import pandas as pd
 import numpy as np
 from scipy.sparse.linalg import spsolve
 import cmath as cm
-from time import time
 import warnings
 
 from helmpy.core.nr import get_case_name_from_path_without_extension
@@ -658,7 +655,7 @@ def write_results_on_files():
     # time and iterations are written on a .txt file
     txt_name = "NR DS "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
     result = open(ROOT_PATH / 'data' / 'txt' / txt_name,"w")
-    result.write('Scale: '+str(scale)+'\tTime: '+str(T_bucle_out)+' sg'+'\tMismatch: '+str(Mis)+'\nIterations per PVLIM-PQ switches: '+str(list_iterations))
+    result.write('Scale: '+str(scale)+'\tMismatch: '+str(Mis)+'\nIterations per PVLIM-PQ switches: '+str(list_iterations))
     result.write("\n\nPower balance:\n\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
     result.write("\n\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
     result.write("\n\nComparison between active power losses 'Ploss' and active power\nthrough branches and shunt elements 'Pmismatch' (MW):\t\t\t\t"+str(np.real(Ploss*100))+" = "+str(Pmismatch*100))
@@ -694,7 +691,6 @@ def nr_ds(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Sca
     variables_initialization()
     Buses_xls()
     # Loop that stops when the deltas P and Q be less than the specified mismatch, or the program diverges
-    T_bucle_in = time()
     while(True):
         Compute_K_factors()
         # Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
@@ -720,8 +716,6 @@ def nr_ds(GridName, Print_Details=False, Mismatch=1e-4, Results_FileName='', Sca
         if not(Check_Generators_Limits()):
             print("Convergence has been reached")
             break
-    T_bucle_out = time() - T_bucle_in
-    print("\nLoop Time:", T_bucle_out," sg")
     tita_degree = np.rad2deg(tita)
     if not(divergence):
         Print_Voltage_Profile()

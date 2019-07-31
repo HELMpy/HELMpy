@@ -1,4 +1,4 @@
-Scale:1.02	Time:0.37797069549560547 sg	Mismatch:1e-08
+Scale:1.02	Mismatch:1e-08
 Coefficients per PVLIM-PQ switches: [15, 15]
 
 Power balance:

@@ -1,4 +1,4 @@
-Scale: 1.02	Time: 0.17824077606201172 sg	Mismatch: 1e-08
+Scale: 1.02	Mismatch: 1e-08
 Iterations per PVLIM-PQ switches: [4, 3]
 
 Power balance:
