@@ -1,0 +1,13 @@
+Scale:1.02	Mismatch:1e-08
+Coefficients per PVLIM-PQ switches: [15]
+
+Power balance:
+
+Total generated power (MVA):							326.67477934069376 + 41.20650207001919j
+Total demanded power (MVA):							321.3 + 117.30000000000001j
+Total power through branches and shunt elements (mismatch) (MVA):		5.374779340693742 + -76.0934979459706j
+
+Comparison between generated power and demanded plus mismatch power (MVA):	326.67477934069376 + 41.20650207001919j  =  326.67477934069376 + 41.206502054029414j
+
+Comparison between active power losses 'Ploss' and active power
+through branches and shunt elements 'Pmismatch' (MW):				5.374779341058968 = 5.374779340693742

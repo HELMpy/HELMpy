@@ -1,0 +1,54 @@
+image: python:3.7-slim
+
+stages:
+    -   test
+    -   build
+    -   release
+
+python3.6:
+    image:
+        python:3.6.9-slim
+    before_script:
+        -   python -m pip install -r requirements.txt
+    script:
+        -   tox -e py36
+    stage:
+        test
+
+python3.7:
+    image:
+        python:3.7.4-slim
+    before_script:
+        -   python -m pip install -r requirements.txt
+    script:
+        -   tox -e py37
+    stage:
+        test
+
+bdist_wheel:
+    stage:
+        build
+    script:
+        -   python setup.py bdist_wheel
+    artifacts:
+        paths:
+            -   dist/*.whl
+
+wheel:
+    artifacts:
+        paths:
+            -   dist/*.whl
+    image:
+        python:3.7.4-slim
+    before_script:
+        - export DEBIAN_FRONTEND="noninteractive"
+    script:
+        -   python -m pip install --upgrade -r requirements.txt
+        -   python setup.py bdist_wheel
+        -   pip install --upgrade twine
+        -   twine upload --verbose dist/*
+    stage:
+        release
+    variables:
+        TWINE_USERNAME: $TWINE_USERNAME
+        TWINE_PASSWORD: $TWINE_PASSWORD
