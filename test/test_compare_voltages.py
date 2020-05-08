@@ -1,5 +1,6 @@
 import pytest
 
+import parent_path
 from helmpy.compare.compare_voltages import main
 from helmpy.util.root_path import ROOT_PATH
 

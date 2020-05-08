@@ -14,6 +14,7 @@ import random
 import pytest
 import numpy
 
+import parent_path
 from helmpy.core.helm_ds_m1_pv1 import helm_ds_m1_pv1
 from helmpy.core.helm_ds_m1_pv2 import helm_ds_m1_pv2
 from helmpy.core.helm_ds_m2_pv1 import helm_ds_m2_pv1
