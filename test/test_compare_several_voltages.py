@@ -1,3 +1,4 @@
+import parent_path
 from helmpy.compare.compare_several_voltages import main
 from helmpy.util.root_path import ROOT_PATH
 
