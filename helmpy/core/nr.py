@@ -627,37 +627,39 @@ def get_case_name_from_path_without_extension(case):
 
 # main function
 def nr(
-    *,
-    Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxIterations=15, Enforce_Qlimits=True,
-    generators_file_path,
-    buses_file_path,
-    branches_file_path,
+        grid_data_file_path,
+        Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1,
+        MaxIterations=15, Enforce_Qlimits=True,
 ):
     global Jaco, deltas_P_Q, deltas_tita_V, tita_degree, T_bucle_out
     global buses, branches, generators, N, N_generators, N_branches
     global detailed_run_print, Mis, case, scale, divergence, iterations_limit, Q_limits, list_iterations, iterations, V_complex_profile
-    if type(Print_Details) is not bool or\
-            type(Mismatch)is not float or\
-            type(Results_FileName)is not str or \
-            not(
-                    type(Scale) is float or
-                    type(Scale) is int
-            ) or \
-            type(MaxIterations) is not int or \
-            type(Enforce_Qlimits) is not bool:
+    if (type(Print_Details) is not bool or \
+        type(Mismatch) is not float or \
+        type(Results_FileName)is not str or \
+        not(
+                type(Scale) is float or
+                type(Scale) is int
+        ) or \
+        type(MaxIterations) is not int or \
+        type(Enforce_Qlimits) is not bool
+    ):
         print("Erroneous argument type.")
         return
 
     detailed_run_print = Print_Details
     Mis = Mismatch
-    case = generators_file_path[0:-len('.csv')]
+    if(Results_FileName==''):
+        case = grid_data_file_path[0:-5]
+    else:
+        case = Results_FileName
     scale = Scale
     iterations_limit = MaxIterations
     Q_limits = Enforce_Qlimits
 
-    generators = pd.read_csv(generators_file_path, header=None)
-    buses = pd.read_csv(buses_file_path, header=None)
-    branches = pd.read_csv(branches_file_path, header=None)
+    buses = pd.read_excel(grid_data_file_path, sheet_name='Buses', header=None)
+    branches = pd.read_excel(grid_data_file_path, sheet_name='Branches', header=None)
+    generators = pd.read_excel(grid_data_file_path, sheet_name='Generators', header=None)
 
     N = len(buses.index)
     N_generators = len(generators.index)
@@ -691,5 +693,5 @@ def nr(
     if not(divergence):
         print_voltage_profile()
         power_balance()
-        write_results_on_files()
+        # write_results_on_files()
         return V_complex_profile

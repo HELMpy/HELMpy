@@ -706,34 +706,38 @@ def write_results_on_files():
 
 # Main loop
 def helm_pv2(
-        *,
-        Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1, MaxCoefficients=100, Enforce_Qlimits=True,
-        generators_file_path, buses_file_path, branches_file_path,
+        grid_data_file_path,
+        Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1,
+        MaxCoefficients=100, Enforce_Qlimits=True,
 ):
     global V_complex_profile, N, buses, branches, N_branches, N_coef, N_generators, generators, T, Flag_divergence
     global detailed_run_print, Mis, case, scale, N_coef, Q_limits
-    if type(Print_Details) is not bool or \
-            type(Mismatch) is not float or \
-            type(Results_FileName)is not str or \
-            not(
-                    type(Scale) is float or
-                    type(Scale) is int
-            ) or\
-            type(MaxCoefficients) is not int or \
-            type(Enforce_Qlimits) is not bool:
+    if (type(Print_Details) is not bool or \
+        type(Mismatch) is not float or \
+        type(Results_FileName)is not str or \
+        not(
+                type(Scale) is float or
+                type(Scale) is int
+        ) or \
+        type(MaxCoefficients) is not int or \
+        type(Enforce_Qlimits) is not bool
+    ):
         print("Erroneous argument type.")
         return
 
     detailed_run_print = Print_Details
     Mis = Mismatch
-    case = generators_file_path[0:-len('.csv')]
+    if(Results_FileName==''):
+        case = grid_data_file_path[0:-5]
+    else:
+        case = Results_FileName
     scale = Scale
     N_coef = MaxCoefficients
     Q_limits = Enforce_Qlimits
 
-    generators = pd.read_csv(generators_file_path, header=None)
-    buses = pd.read_csv(buses_file_path, header=None)
-    branches = pd.read_csv(branches_file_path, header=None)
+    buses = pd.read_excel(grid_data_file_path, sheet_name='Buses', header=None)
+    branches = pd.read_excel(grid_data_file_path, sheet_name='Branches', header=None)
+    generators = pd.read_excel(grid_data_file_path, sheet_name='Generators', header=None)
 
     N = len(buses.index)
     N_generators = len(generators.index)
@@ -755,5 +759,5 @@ def helm_pv2(
         final_results() # Separate each voltage value in magnitude and phase angle (degrees)
         print_voltage_profile()
         power_balance()
-        write_results_on_files()
+        # write_results_on_files()
         return V_complex_profile
