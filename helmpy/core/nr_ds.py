@@ -15,9 +15,8 @@ import numpy as np
 import pandas as pd
 from scipy.sparse.linalg import spsolve
 
-from helmpy.core.nr import get_case_name_from_path_without_extension
-from helmpy.core.write_results_to_csv import write_results_to_csv
-from helmpy.util.root_path import ROOT_PATH
+from helmpy.core.helm_functions import write_results_on_files
+from helmpy.core.helm_functions import print_voltage_profile
 
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
@@ -612,52 +611,27 @@ def power_balance():
     S_mismatch = (P_losses_line + Q_losses_line + S_shunt) * 100
 
     if detailed_run_print:
-        print("\n\n\tPower balance:\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
-        print("\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
-        print("\nComparison between active power losses 'Ploss' and active power\nthrough branches and shunt elements 'Pmismatch' (MW):\t\t\t\t"+str(np.real(Ploss*100))+" = "+str(Pmismatch*100))
-
-
-def print_voltage_profile():
-    global V, tita_degree, N, detailed_run_print
-    if detailed_run_print:
-        print("\n\tVoltage profile:")
-        print("   Bus    Magnitude (p.u.)    Phase Angle (degrees)")
-        if N <= 31:
-            for i in range(N):
-                print("%6s"%i,"\t     %1.6f"%V[i],"\t\t{:11.6f}".format(tita_degree[i]))
-        else:
-            for i in range(14):
-                print("%6s"%i,"\t     %1.6f"%V[i],"\t\t{:11.6f}".format(tita_degree[i]))
-            print("     .\t         .\t\t      .")
-            print("     .\t         .\t\t      .")
-            print("     .\t         .\t\t      .")
-            for i in range(N-14,N):
-                print("%6s"%i,"\t     %1.6f"%V[i],"\t\t{:11.6f}".format(tita_degree[i]))
-
-
-def write_results_on_files():
-    global V_complex_profile, V, tita_degree, scale, T_bucle_out, list_iterations, Mis, case, Power_print, Pmismatch, S_gen, S_load, S_mismatch, Ploss
-    # Write voltage profile to csv file
-    data = pd.DataFrame()
-    data["Complex Voltages"] = V_complex_profile
-    data["Voltages Magnitude"] = V
-    data["Voltages Phase Angle"] = tita_degree
-    case = get_case_name_from_path_without_extension(case)
-
-    write_results_to_csv(
-        Mis, Power_print, case, data, scale,
-        algorithm='NR DS',
-    )
-
-    # time and iterations are written on a .txt file
-    txt_name = "NR DS "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
-    result = open(ROOT_PATH / 'data' / 'txt' / txt_name,"w")
-    result.write('Scale: '+str(scale)+'\tMismatch: '+str(Mis)+'\nIterations per PVLIM-PQ switches: '+str(list_iterations))
-    result.write("\n\nPower balance:\n\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
-    result.write("\n\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
-    result.write("\n\nComparison between active power losses 'Ploss' and active power\nthrough branches and shunt elements 'Pmismatch' (MW):\t\t\t\t"+str(np.real(Ploss*100))+" = "+str(Pmismatch*100))
-    result.close()
-    print("\nResults have been written on the files:\n\t%s"%(txt_name))
+        output = '\n' + \
+            'Scale: {:d}   Mismatch: {}'.format(scale, Mis) + \
+            '   Coefficients per PVLIM-PQ switches: {:s}' \
+                .format(str(list_iterations)) + \
+            "\n\n  *  Power Balance:  *" + \
+            "\n\nTotal generated power (MVA):  ----------------> {:< 22.15f} {:=+23.15f} j" \
+                .format(np.real(S_gen),np.imag(S_gen)) + \
+            "\nTotal demanded power (MVA):  -----------------> {:< 22.15f} {:=+23.15f} j" \
+                .format(np.real(S_load),np.imag(S_load)) + \
+            "\nTotal power through branches and shunt" + \
+            "\nelements (mismatch) (MVA):  ------------------> {:< 22.15f} {:=+23.15f} j" \
+                .format(np.real(S_mismatch),np.imag(S_mismatch)) + \
+            "\n\nComparison: Generated power (MVA):  ----------> {:< 22.15f} {:=+23.15f} j" \
+                .format(np.real(S_gen),np.imag(S_gen)) + \
+            "\n            Demanded plus mismatch power (MVA): {:< 22.15f} {:=+23.15f} j" \
+                .format(np.real(S_load+S_mismatch),np.imag(S_load+S_mismatch)) + \
+            "\n\nComparison: Active power losses 'Ploss' variable (MW):  ---------------------> {:< 22.15f}" \
+                .format(np.real(Ploss*100)) + \
+            "\n            Active power through branches and shunt elements 'Pmismatch' (MW): {:< 22.15f}" \
+                .format(np.real(Pmismatch*100))
+        print(output)
 
 
 # main function
@@ -669,6 +643,8 @@ def nr_ds(
     global Jaco, deltas_P_Q, deltas_Ploss_tita_V, tita_degree, T_bucle_out, solve
     global buses, branches, generators, N, N_generators, N_branches
     global detailed_run_print, Mis, case, scale, divergence, iterations_limit, Q_limits, list_iterations, iterations, V_complex_profile
+    global V, Power_print, S_gen, S_load, S_mismatch, Ploss, Pmismatch #Nuevos globales necesarias para la funcion write
+
     if (type(Print_Details) is not bool or \
         type(Mismatch) is not float or \
         type(Results_FileName)is not str or \
@@ -683,6 +659,7 @@ def nr_ds(
         print("Erroneous argument type.")
         return
 
+    algorithm = 'NR DS'
     detailed_run_print = Print_Details
     Mis = Mismatch
     if(Results_FileName==''):
@@ -731,7 +708,15 @@ def nr_ds(
             break
     tita_degree = np.rad2deg(tita)
     if not(divergence):
-        print_voltage_profile()
+        V_polar_final = np.zeros((N,2), dtype=float)
+        V_polar_final[:,0] = V  # Voltage magnitude
+        V_polar_final[:,1] = tita_degree  # Voltage phase angle
+        print_voltage_profile(V_polar_final,N)
         power_balance()
-        # write_results_on_files()
+        write_results_on_files(
+            case, scale, Mis, algorithm,
+            V_polar_final, V_complex_profile, Power_print,
+            list_iterations, S_gen, S_load, S_mismatch,
+            Ploss, Pmismatch
+        )
         return V_complex_profile

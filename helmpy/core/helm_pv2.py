@@ -17,9 +17,9 @@ from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import factorized
 
 from helmpy.core.helm_pade import Pade
-from helmpy.core.nr import get_case_name_from_path_without_extension
-from helmpy.core.write_results_to_csv import write_results_to_csv
-from helmpy.util.root_path import ROOT_PATH
+from helmpy.core.helm_functions import write_results_on_files
+from helmpy.core.helm_functions import print_voltage_profile
+from helmpy.core.helm_functions import convert_complex_to_polar_voltages
 
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
@@ -655,55 +655,6 @@ def power_balance():
 V_polar_final = np.zeros((N,2), dtype=float)
 
 
-def final_results():
-    global V_complex_profile, V_polar_final, N
-    for i in range(N):
-        magnitude, radians = cm.polar(V_complex_profile[i])
-        V_polar_final[i,0],V_polar_final[i,1] = magnitude, np.rad2deg(radians)
-
-
-def print_voltage_profile():
-    global V_polar_final, N, detailed_run_print
-    if detailed_run_print:
-        print("\n\tVoltage profile:")
-        print("   Bus    Magnitude (p.u.)    Phase Angle (degrees)")
-        if N <= 31:
-            for i in range(N):
-                print("%6s"%i,"\t     %1.6f"%V_polar_final[i,0],"\t\t{:11.6f}".format(V_polar_final[i,1]))
-        else:
-            for i in range(14):
-                print("%6s"%i,"\t     %1.6f"%V_polar_final[i,0],"\t\t{:11.6f}".format(V_polar_final[i,1]))
-            print("     .\t         .\t\t      .")
-            print("     .\t         .\t\t      .")
-            print("     .\t         .\t\t      .")
-            for i in range(N-14,N):
-                print("%6s"%i,"\t     %1.6f"%V_polar_final[i,0],"\t\t{:11.6f}".format(V_polar_final[i,1]))
-
-
-def write_results_on_files():
-    global V_polar_final, T, Mis, scale, list_coef, case, V_complex_profile, Power_print, Pmismatch, S_gen, S_load, S_mismatch
-    # Write voltage profile to csv file
-    data = pd.DataFrame()
-    data["Complex Voltages"] = V_complex_profile
-    data["Voltages Magnitude"] = V_polar_final[:,0]
-    data["Voltages Phase Angle"] = V_polar_final[:,1]
-    case = get_case_name_from_path_without_extension(case)
-
-    write_results_to_csv(
-        Mis, Power_print, case, data, scale,
-        algorithm='HELM PV2',
-    )
-
-    # Coefficients per PVLIM-PQ switches are written on a .txt file
-    txt_name = "HELM PV2 "+str(case)+' '+str(scale)+' '+str(Mis)+".txt"
-    result = open(ROOT_PATH / 'data' / 'txt' / txt_name,"w")
-    result.write('Scale:'+str(scale)+'\tMismatch:'+str(Mis)+'\n'+'Coefficients per PVLIM-PQ switches: '+str(list_coef))
-    result.write("\n\nPower balance:\n\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
-    result.write("\n\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
-    result.close()
-    print("\nResults have been written on the files:\n\t%s"%(txt_name))
-
-
 # Main loop
 def helm_pv2(
         grid_data_file_path,
@@ -712,6 +663,8 @@ def helm_pv2(
 ):
     global V_complex_profile, N, buses, branches, N_branches, N_coef, N_generators, generators, T, Flag_divergence
     global detailed_run_print, Mis, case, scale, N_coef, Q_limits
+    global Power_print, V_polar_final, list_coef, S_gen, S_load, S_mismatch #Nuevos globales necesarias para la funcion write
+    
     if (type(Print_Details) is not bool or \
         type(Mismatch) is not float or \
         type(Results_FileName)is not str or \
@@ -725,6 +678,7 @@ def helm_pv2(
         print("Erroneous argument type.")
         return
 
+    algorithm='HELM PV2'
     detailed_run_print = Print_Details
     Mis = Mismatch
     if(Results_FileName==''):
@@ -756,8 +710,12 @@ def helm_pv2(
         if computing_voltages_mismatch():
             break
     if not Flag_divergence:
-        final_results() # Separate each voltage value in magnitude and phase angle (degrees)
-        print_voltage_profile()
+        V_polar_final = convert_complex_to_polar_voltages(V_complex_profile,N)
+        print_voltage_profile(V_polar_final,N)
         power_balance()
-        # write_results_on_files()
+        write_results_on_files(
+            case, scale, Mis, algorithm,
+            V_polar_final, V_complex_profile, Power_print,
+            list_coef, S_gen, S_load, S_mismatch
+        )
         return V_complex_profile
