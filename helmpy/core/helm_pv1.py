@@ -17,9 +17,7 @@ from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import factorized
 
 from helmpy.core.helm_pade import Pade
-from helmpy.core.helm_functions import write_results_on_files
-from helmpy.core.helm_functions import print_voltage_profile
-from helmpy.core.helm_functions import convert_complex_to_polar_voltages
+from helmpy.core.helm_functions import *
 
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
@@ -420,20 +418,17 @@ def Gen_bus(i,n):  # bus i, coefficient n
     Soluc_eval[2*i + 1][n] = np.imag(result)
 
 
-# Separation of the voltage profile in its real and imaginary parts
-def Voltages_profile():
-    global V_complex_profile, Vre, Vimag
-    Vre = np.real(V_complex_profile)
-    Vimag = np.imag(V_complex_profile)
-
 # Verification of Qgen limits for PVLIM buses
 def Check_PVLIM():
     global Buses_type, Qg, Qd, Qgmax, Qgmin, N, num_gen, list_gen_remove, list_gen, detailed_run_print
+    global Vre, Vimag, Yre, Yimag , branches_buses # globales para Q_iny
+    global V_complex_profile # para separate_complex_to_real_imag_voltages
+    
     flag_violacion = 0
-    Voltages_profile()
+    Vre, Vimag = separate_complex_to_real_imag_voltages(V_complex_profile)
 
     for i in list_gen:
-        Qg_incog = Q_iny(i) + Qd[i]
+        Qg_incog = Q_iny(i, Vre, Vimag, Yre, Yimag , branches_buses) + Qd[i]
         Qg[i] = Qg_incog
         if((Qg_incog>Qgmax[i]) or (Qg_incog<Qgmin[i])):
             flag_violacion = 1
@@ -448,22 +443,6 @@ def Check_PVLIM():
                 print('Bus %d exceeded its Qgen limit with %f. The exceeded limit %f will be assigned to the bus'%(i+1,Qg_incog,Qg[i]))
     return flag_violacion
 
-
-# Computing Q injection at bus i. Must be used after Voltages_profile()
-def Q_iny(i):
-    global Vre, Vimag, Yre, Yimag, N, branches_buses
-    Qiny = 0
-    for k in branches_buses[i]:
-        Qiny += Vimag[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) - Vre[i]*(Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
-    return Qiny
-
-# Computing P injection at bus i. Must be used after Voltages_profile()
-def P_iny(i):
-    global Vre, Vimag, Yre, Yimag, N, branches_buses
-    Piny = 0
-    for k in branches_buses[i]:
-        Piny += Vre[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) + Vimag[i]*(Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
-    return Piny
 
 # Re-construct list_gen. List of generators (PV buses)
 def create_generator_list():
@@ -573,72 +552,6 @@ def computing_voltages_mismatch():
     return Flag_recalculate
 
 
-# Computation of power flow trough branches and power balance
-def power_balance():
-    global V_complex_profile, Ybr_list, Power_branches, N_branches, Power_print, N, Shunt, slack, Pd, Qd, Pg, Qg, K, Pmismatch, S_gen, S_load, S_mismatch, detailed_run_print, Q_limits, list_gen
-
-    for branch in range(N_branches):
-
-        Bus_from =  Power_branches[branch][0] = int(Ybr_list[branch][0])
-        Bus_to = Power_branches[branch][1] = int(Ybr_list[branch][1])
-        Ybr = Ybr_list[branch][2]
-
-        V_from = V_complex_profile[Bus_from]
-        V_to = V_complex_profile[Bus_to]
-        V_vector = np.array([V_from,V_to])
-        
-        I =  np.matmul(Ybr,V_vector)
-
-        S_ft = V_from * np.conj(I[0]) * 100
-        S_tf = V_to * np.conj(I[1]) * 100
-        S_branch_elements = S_ft + S_tf
-
-        Power_branches[branch][2] = np.real(S_ft)
-        Power_branches[branch][3] = np.imag(S_ft)
-
-        Power_branches[branch][4] = np.real(S_tf)
-        Power_branches[branch][5] = np.imag(S_tf)
-
-        Power_branches[branch][6] = np.real(S_branch_elements)
-        Power_branches[branch][7] = np.imag(S_branch_elements)
-
-    Power_print = pd.DataFrame()
-    Power_print["From Bus"] = Power_branches[:,0]
-    Power_print["To Bus"] = Power_branches[:,1]
-    Power_print['From-To P injection (MW)'] = Power_branches[:,2]
-    Power_print['From-To Q injection (MVAR)'] = Power_branches[:,3]
-    Power_print['To-From P injection (MW)'] = Power_branches[:,4]
-    Power_print['To-From Q injection (MVAR)'] = Power_branches[:,5]
-    Power_print['P flow through branch and elements (MW)'] = Power_branches[:,6]
-    Power_print['Q flow through branch and elements (MVAR)'] = Power_branches[:,7]
-    P_losses_line = np.sum(Power_branches[:,6])/100
-    Q_losses_line = np.sum(Power_branches[:,7]) * 1j /100
-
-    # Computation of power through shunt capacitors, reactors or conductantes, Power balanca
-    S_shunt = 0
-    for i in range(N):
-        if Shunt[i] != 0:
-            S_shunt += V_complex_profile[i] * np.conj(V_complex_profile[i]*Shunt[i])
-
-    Qload = np.sum(Qd) * 1j
-    if not Q_limits:
-        Voltages_profile()
-        for i in list_gen:
-            Qg[i] = Q_iny(i) + Qd[i]
-    Qgen = (np.sum(Qg) + Q_iny(slack) + Qd[slack]) * 1j
-
-    Pload = np.sum(Pd)
-    Pgen = np.sum(Pg) + P_iny(slack) + Pd[slack]
-
-    S_gen = (Pgen + Qgen) * 100
-    S_load = (Pload + Qload) * 100
-    S_mismatch = (P_losses_line + Q_losses_line + S_shunt) * 100
-
-    if detailed_run_print:
-        print("\n\n\tPower balance:\nTotal generated power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j\nTotal demanded power (MVA):\t\t\t\t\t\t\t"+str(np.real(S_load))+" + "+str(np.imag(S_load))+"j\nTotal power through branches and shunt elements (mismatch) (MVA):\t\t"+str(np.real(S_mismatch))+" + "+str(np.imag(S_mismatch))+"j")
-        print("\nComparison between generated power and demanded plus mismatch power (MVA):\t"+str(np.real(S_gen))+" + "+str(np.imag(S_gen))+"j  =  "+str(np.real(S_load+S_mismatch))+" + "+str(np.imag(S_load+S_mismatch))+"j")
-
-
 # Separate each voltage value in magnitude and phase angle (degrees)
 V_polar_final = np.zeros((N,2), dtype=float)
 
@@ -646,12 +559,15 @@ V_polar_final = np.zeros((N,2), dtype=float)
 # Main loop
 def helm_pv1(
         grid_data_file_path,
-        Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1,
-        MaxCoefficients=100, Enforce_Qlimits=True,
-    ):
+        Print_Details=False, Mismatch=1e-4, Scale=1,
+        MaxCoefficients=100, Enforce_Qlimits=True, DSB_model=True,
+        Results_FileName='', Save_results=False,
+):
     global V_complex_profile, N, buses, branches, N_branches, N_coef, N_generators, generators, T, Flag_divergence
     global detailed_run_print, Mis, case, scale, N_coef, Q_limits
     global Power_print, V_polar_final, list_coef, S_gen, S_load, S_mismatch #Nuevos globales necesarias para la funcion write    
+    global Ybr_list, Shunt, slack, Pd, Qd, Pg, Qg, K, list_gen ##Nuevos globales necesarias para la funcion powerbalance
+    global Vre, Vimag, Yre, Yimag , branches_buses ##Nuevos globales necesarias para la funcion  Q_in y separate Vre Vimag
 
     if (type(Print_Details) is not bool or \
         type(Mismatch) is not float or \
@@ -698,12 +614,24 @@ def helm_pv1(
         if computing_voltages_mismatch():
             break
     if not Flag_divergence:
-        V_polar_final = convert_complex_to_polar_voltages(V_complex_profile,N)
-        print_voltage_profile(V_polar_final,N)
-        power_balance()
-        write_results_on_files(
-            case, scale, Mis, algorithm,
-            V_polar_final, V_complex_profile, Power_print,
-            list_coef, S_gen, S_load, S_mismatch
-        )
+        if detailed_run_print or Save_results:
+            (Power_branches, S_gen, S_load, S_mismatch) = power_balance(
+                V_complex_profile, Ybr_list,
+                N_branches, N, Shunt, slack, Pd, Qd, Pg, Qg,
+                S_gen, S_load, S_mismatch, Q_limits, list_gen,
+                Vre, Vimag, Yre, Yimag , branches_buses, algorithm
+            )
+            V_polar_final = convert_complex_to_polar_voltages(V_complex_profile,N)
+            if detailed_run_print:
+                print_voltage_profile(V_polar_final,N)
+                print(create_power_balance_string(
+                    scale, Mis, algorithm,
+                    list_coef, S_gen, S_load, S_mismatch
+                ))
+            if Save_results:
+                write_results_on_files(
+                case, scale, Mis, algorithm,
+                V_polar_final, V_complex_profile, Power_branches,
+                list_coef, S_gen, S_load, S_mismatch
+            )
         return V_complex_profile

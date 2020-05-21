@@ -15,8 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy.sparse.linalg import spsolve
 
-from helmpy.core.helm_functions import write_results_on_files
-from helmpy.core.helm_functions import print_voltage_profile
+from helmpy.core.helm_functions import *
 
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
@@ -544,106 +543,19 @@ def Qiny(i):
     Qi[i] = Q_iny
 
 
-# Computation of power flow trough branches and power balance
-def power_balance():
-    global V_complex_profile, Ybr_list, Power_branches, N_branches, Power_print, N, Shunt, Pd, Qd, Pg, Qg, K_factors, Pmismatch, S_gen, S_load, S_mismatch, Ploss, detailed_run_print, Qi, ref, Number_bus, Q_limits, list_gen
-
-    slack = Number_bus[ref]
-
-    for branch in range(N_branches):
-
-        Bus_from =  Power_branches[branch][0] = int(Ybr_list[branch][0])
-        Bus_to = Power_branches[branch][1] = int(Ybr_list[branch][1])
-        Ybr = Ybr_list[branch][2]
-
-        V_from = V_complex_profile[Bus_from]
-        V_to = V_complex_profile[Bus_to]
-        V_vector = np.array([V_from,V_to])
-        
-        I =  np.matmul(Ybr,V_vector)
-
-        S_ft = V_from * np.conj(I[0]) * 100
-        S_tf = V_to * np.conj(I[1]) * 100
-        S_branch_elements = S_ft + S_tf
-
-        Power_branches[branch][2] = np.real(S_ft)
-        Power_branches[branch][3] = np.imag(S_ft)
-
-        Power_branches[branch][4] = np.real(S_tf)
-        Power_branches[branch][5] = np.imag(S_tf)
-
-        Power_branches[branch][6] = np.real(S_branch_elements)
-        Power_branches[branch][7] = np.imag(S_branch_elements)
-
-    Power_print = pd.DataFrame()
-    Power_print["From Bus"] = Power_branches[:,0]
-    Power_print["To Bus"] = Power_branches[:,1]
-    Power_print['From-To P injection (MW)'] = Power_branches[:,2]
-    Power_print['From-To Q injection (MVAR)'] = Power_branches[:,3]
-    Power_print['To-From P injection (MW)'] = Power_branches[:,4]
-    Power_print['To-From Q injection (MVAR)'] = Power_branches[:,5]
-    Power_print['P flow through branch and elements (MW)'] = Power_branches[:,6]
-    Power_print['Q flow through branch and elements (MVAR)'] = Power_branches[:,7]
-    P_losses_line = np.sum(Power_branches[:,6])/100
-    Q_losses_line = np.sum(Power_branches[:,7]) * 1j /100
-
-    # Computation of power through shunt capacitors, reactors or conductantes, Power balanca
-    S_shunt = 0
-    for i in range(N):
-        if Shunt[i] != 0:
-            S_shunt += V_complex_profile[i] * np.conj(V_complex_profile[i]*Shunt[i])
-
-    Pmismatch = P_losses_line + np.real(S_shunt)
-
-    Pload = np.sum(Pd)
-    Pgen = 0
-    for i in range(N):
-        Pgen += Pg[i] + K_factors[i]*Pmismatch
-
-    Qload = np.sum(Qd) * 1j
-    if not Q_limits:
-        for i in list_gen:
-            Qg[i] = Qi[i] + Qd[i]
-    Qgen = (np.sum(Qg) + Qi[slack] + Qd[slack]) * 1j
-
-    S_gen = (Pgen + Qgen) * 100
-    S_load = (Pload + Qload) * 100
-    S_mismatch = (P_losses_line + Q_losses_line + S_shunt) * 100
-
-    if detailed_run_print:
-        output = '\n' + \
-            'Scale: {:d}   Mismatch: {}'.format(scale, Mis) + \
-            '   Coefficients per PVLIM-PQ switches: {:s}' \
-                .format(str(list_iterations)) + \
-            "\n\n  *  Power Balance:  *" + \
-            "\n\nTotal generated power (MVA):  ----------------> {:< 22.15f} {:=+23.15f} j" \
-                .format(np.real(S_gen),np.imag(S_gen)) + \
-            "\nTotal demanded power (MVA):  -----------------> {:< 22.15f} {:=+23.15f} j" \
-                .format(np.real(S_load),np.imag(S_load)) + \
-            "\nTotal power through branches and shunt" + \
-            "\nelements (mismatch) (MVA):  ------------------> {:< 22.15f} {:=+23.15f} j" \
-                .format(np.real(S_mismatch),np.imag(S_mismatch)) + \
-            "\n\nComparison: Generated power (MVA):  ----------> {:< 22.15f} {:=+23.15f} j" \
-                .format(np.real(S_gen),np.imag(S_gen)) + \
-            "\n            Demanded plus mismatch power (MVA): {:< 22.15f} {:=+23.15f} j" \
-                .format(np.real(S_load+S_mismatch),np.imag(S_load+S_mismatch)) + \
-            "\n\nComparison: Active power losses 'Ploss' variable (MW):  ---------------------> {:< 22.15f}" \
-                .format(np.real(Ploss*100)) + \
-            "\n            Active power through branches and shunt elements 'Pmismatch' (MW): {:< 22.15f}" \
-                .format(np.real(Pmismatch*100))
-        print(output)
-
-
 # main function
 def nr_ds(
         grid_data_file_path,
-        Print_Details=False, Mismatch=1e-4, Results_FileName='', Scale=1,
+        Print_Details=False, Mismatch=1e-4, Scale=1,
         MaxIterations=15, Enforce_Qlimits=True, DSB_model=True,
+        Results_FileName='',  Save_results=False,
 ):
     global Jaco, deltas_P_Q, deltas_Ploss_tita_V, tita_degree, T_bucle_out, solve
     global buses, branches, generators, N, N_generators, N_branches
     global detailed_run_print, Mis, case, scale, divergence, iterations_limit, Q_limits, list_iterations, iterations, V_complex_profile
     global V, Power_print, S_gen, S_load, S_mismatch, Ploss, Pmismatch #Nuevos globales necesarias para la funcion write
+    global Ybr_list, Shunt, slack, Pd, Qd, Pg, Qg, K_factors, list_gen, Pi, Qi # Nuevos globales necesarias para la funcion powerbalance
+    global Number_bus, ref # Nuevos globales necesarias para la funcion write
 
     if (type(Print_Details) is not bool or \
         type(Mismatch) is not float or \
@@ -708,15 +620,27 @@ def nr_ds(
             break
     tita_degree = np.rad2deg(tita)
     if not(divergence):
-        V_polar_final = np.zeros((N,2), dtype=float)
-        V_polar_final[:,0] = V  # Voltage magnitude
-        V_polar_final[:,1] = tita_degree  # Voltage phase angle
-        print_voltage_profile(V_polar_final,N)
-        power_balance()
-        write_results_on_files(
-            case, scale, Mis, algorithm,
-            V_polar_final, V_complex_profile, Power_print,
-            list_iterations, S_gen, S_load, S_mismatch,
-            Ploss, Pmismatch
-        )
+        V_polar_final = create_polar_voltages_variable(V, tita_degree, N)
+        if detailed_run_print or Save_results:
+            (Power_branches, S_gen, S_load, S_mismatch, Pmismatch) = power_balance(
+                V_complex_profile, Ybr_list,
+                N_branches, N, Shunt, Number_bus[ref], Pd, Qd, Pg, Qg,
+                S_gen, S_load, S_mismatch, Q_limits, list_gen,
+                Vre, Vimag, Yre, Yimag , branches_buses, algorithm,
+                Pi=Pi, Qi=Qi, K=K_factors, Pmismatch=Pmismatch
+            )
+            if detailed_run_print:
+                print_voltage_profile(V_polar_final,N)
+                print(create_power_balance_string(
+                    scale, Mis, algorithm,
+                    list_iterations, S_gen, S_load, S_mismatch,
+                    Ploss, Pmismatch
+                ))
+            if Save_results:
+                write_results_on_files(
+                case, scale, Mis, algorithm,
+                V_polar_final, V_complex_profile, Power_branches,
+                list_iterations, S_gen, S_load, S_mismatch,
+                Ploss, Pmismatch
+            )
         return V_complex_profile
