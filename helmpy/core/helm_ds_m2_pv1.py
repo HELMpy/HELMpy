@@ -122,159 +122,159 @@ def initialize_data_arrays():
     Power_branches = np.zeros((N_branches,8), dtype=float)
 
 
-# Branches data processing to construct Ytrans, Yshunt, branches_buses and others
-def branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
-    global Ytrans, Yshunt, Number_bus, branches_buses, Ybr_list
-    global phase_barras, phase_dict
-    FB = Number_bus[FromBus] 
-    TB = Number_bus[ToBus]
-    Ybr_list.append([FB, TB, np.zeros((2,2),dtype=complex)])
-    Z = R + 1j*X
-    if Tap == 0 or Tap == 1:
-        if Z != 0:
-            Yseries_ft = 1/Z
-            if(Shift_degree==0):
-                Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = -Yseries_ft
-            else:
-                Shift = np.deg2rad(Shift_degree)
-                Yseries_ft_shift = Yseries_ft/(np.exp(-1j*Shift))
-                Yseries_tf_shift = Yseries_ft/(np.exp(1j*Shift))
-                Ybr_list[i][2][0,1] = -Yseries_ft_shift
-                Ybr_list[i][2][1,0] = -Yseries_tf_shift
-                if(phase_barras[FB]):
-                    if( TB in phase_dict[FB][0]):
-                        phase_dict[FB][1][ phase_dict[FB][0].index(TB) ] += Yseries_ft - Yseries_ft_shift
-                    else:
-                        phase_dict[FB][0].append(TB)
-                        phase_dict[FB][1].append(Yseries_ft - Yseries_ft_shift)
-                else:
-                    phase_dict[FB] = [[TB],[Yseries_ft - Yseries_ft_shift]]
-                    phase_barras[FB] = True
-                if(phase_barras[TB]):
-                    if( FB in phase_dict[TB][0]):
-                        phase_dict[TB][1][ phase_dict[TB][0].index(FB) ] += Yseries_ft - Yseries_tf_shift
-                    else:
-                        phase_dict[FB][0].append(FB)
-                        phase_dict[FB][1].append(Yseries_ft - Yseries_tf_shift)
-                else:
-                    phase_dict[TB] = [[FB],[Yseries_ft - Yseries_tf_shift]]
-                    phase_barras[TB] = True
-            Ytrans[FB][TB] += -Yseries_ft
-            Ytrans[FB][FB] +=  Yseries_ft
-            Ytrans[TB][FB] += -Yseries_ft
-            Ytrans[TB][TB] +=  Yseries_ft
-        else:
-            Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = Yseries_ft = 0
+# # Branches data processing to construct Ytrans, Yshunt, branches_buses and others
+# def branches_processor(i, FromBus, ToBus, R, X, BTotal, Tap, Shift_degree):
+#     global Ytrans, Yshunt, Number_bus, branches_buses, Ybr_list
+#     global phase_barras, phase_dict
+#     FB = Number_bus[FromBus] 
+#     TB = Number_bus[ToBus]
+#     Ybr_list.append([FB, TB, np.zeros((2,2),dtype=complex)])
+#     Z = R + 1j*X
+#     if Tap == 0 or Tap == 1:
+#         if Z != 0:
+#             Yseries_ft = 1/Z
+#             if(Shift_degree==0):
+#                 Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = -Yseries_ft
+#             else:
+#                 Shift = np.deg2rad(Shift_degree)
+#                 Yseries_ft_shift = Yseries_ft/(np.exp(-1j*Shift))
+#                 Yseries_tf_shift = Yseries_ft/(np.exp(1j*Shift))
+#                 Ybr_list[i][2][0,1] = -Yseries_ft_shift
+#                 Ybr_list[i][2][1,0] = -Yseries_tf_shift
+#                 if(phase_barras[FB]):
+#                     if( TB in phase_dict[FB][0]):
+#                         phase_dict[FB][1][ phase_dict[FB][0].index(TB) ] += Yseries_ft - Yseries_ft_shift
+#                     else:
+#                         phase_dict[FB][0].append(TB)
+#                         phase_dict[FB][1].append(Yseries_ft - Yseries_ft_shift)
+#                 else:
+#                     phase_dict[FB] = [[TB],[Yseries_ft - Yseries_ft_shift]]
+#                     phase_barras[FB] = True
+#                 if(phase_barras[TB]):
+#                     if( FB in phase_dict[TB][0]):
+#                         phase_dict[TB][1][ phase_dict[TB][0].index(FB) ] += Yseries_ft - Yseries_tf_shift
+#                     else:
+#                         phase_dict[FB][0].append(FB)
+#                         phase_dict[FB][1].append(Yseries_ft - Yseries_tf_shift)
+#                 else:
+#                     phase_dict[TB] = [[FB],[Yseries_ft - Yseries_tf_shift]]
+#                     phase_barras[TB] = True
+#             Ytrans[FB][TB] += -Yseries_ft
+#             Ytrans[FB][FB] +=  Yseries_ft
+#             Ytrans[TB][FB] += -Yseries_ft
+#             Ytrans[TB][TB] +=  Yseries_ft
+#         else:
+#             Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = Yseries_ft = 0
 
-        Bshunt_ft = 1j*BTotal/2
-        Ybr_list[i][2][0,0] = Ybr_list[i][2][1,1] = Bshunt_ft + Yseries_ft
-        Yshunt[FB] +=  Bshunt_ft
-        Yshunt[TB] +=  Bshunt_ft
-    else:
-        Tap_inv = 1/Tap
-        if Z != 0:
-            Yseries_no_tap = 1/Z
-            Yseries_ft = Yseries_no_tap * Tap_inv
-            if(Shift_degree==0):
-                Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = -Yseries_ft
-            else:
-                Shift = np.deg2rad(Shift_degree)                
-                Yseries_ft_shift = Yseries_ft/(np.exp(-1j*Shift))
-                Yseries_tf_shift = Yseries_ft/(np.exp(1j*Shift))
-                Ybr_list[i][2][0,1] = -Yseries_ft_shift
-                Ybr_list[i][2][1,0] = -Yseries_tf_shift
-                if(phase_barras[FB]):
-                    if( TB in phase_dict[FB][0]):
-                        phase_dict[FB][1][ phase_dict[FB][0].index(TB) ] += Yseries_ft - Yseries_ft_shift
-                    else:
-                        phase_dict[FB][0].append(TB)
-                        phase_dict[FB][1].append(Yseries_ft - Yseries_ft_shift)
-                else:
-                    phase_dict[FB] = [[TB],[Yseries_ft - Yseries_ft_shift]]
-                    phase_barras[FB] = True
-                if(phase_barras[TB]):
-                    if( FB in phase_dict[TB][0]):
-                        phase_dict[TB][1][ phase_dict[TB][0].index(FB) ] += Yseries_ft - Yseries_tf_shift
-                    else:
-                        phase_dict[FB][0].append(FB)
-                        phase_dict[FB][1].append(Yseries_ft - Yseries_tf_shift)
-                else:
-                    phase_dict[TB] = [[FB],[Yseries_ft - Yseries_tf_shift]]
-                    phase_barras[TB] = True
-            Ytrans[FB][TB] += -Yseries_ft
-            Ytrans[FB][FB] +=  Yseries_ft
-            Ytrans[TB][FB] += -Yseries_ft
-            Ytrans[TB][TB] +=  Yseries_ft 
-        else:
-            Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = Yseries_no_tap = Yseries_ft = 0
+#         Bshunt_ft = 1j*BTotal/2
+#         Ybr_list[i][2][0,0] = Ybr_list[i][2][1,1] = Bshunt_ft + Yseries_ft
+#         Yshunt[FB] +=  Bshunt_ft
+#         Yshunt[TB] +=  Bshunt_ft
+#     else:
+#         Tap_inv = 1/Tap
+#         if Z != 0:
+#             Yseries_no_tap = 1/Z
+#             Yseries_ft = Yseries_no_tap * Tap_inv
+#             if(Shift_degree==0):
+#                 Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = -Yseries_ft
+#             else:
+#                 Shift = np.deg2rad(Shift_degree)                
+#                 Yseries_ft_shift = Yseries_ft/(np.exp(-1j*Shift))
+#                 Yseries_tf_shift = Yseries_ft/(np.exp(1j*Shift))
+#                 Ybr_list[i][2][0,1] = -Yseries_ft_shift
+#                 Ybr_list[i][2][1,0] = -Yseries_tf_shift
+#                 if(phase_barras[FB]):
+#                     if( TB in phase_dict[FB][0]):
+#                         phase_dict[FB][1][ phase_dict[FB][0].index(TB) ] += Yseries_ft - Yseries_ft_shift
+#                     else:
+#                         phase_dict[FB][0].append(TB)
+#                         phase_dict[FB][1].append(Yseries_ft - Yseries_ft_shift)
+#                 else:
+#                     phase_dict[FB] = [[TB],[Yseries_ft - Yseries_ft_shift]]
+#                     phase_barras[FB] = True
+#                 if(phase_barras[TB]):
+#                     if( FB in phase_dict[TB][0]):
+#                         phase_dict[TB][1][ phase_dict[TB][0].index(FB) ] += Yseries_ft - Yseries_tf_shift
+#                     else:
+#                         phase_dict[FB][0].append(FB)
+#                         phase_dict[FB][1].append(Yseries_ft - Yseries_tf_shift)
+#                 else:
+#                     phase_dict[TB] = [[FB],[Yseries_ft - Yseries_tf_shift]]
+#                     phase_barras[TB] = True
+#             Ytrans[FB][TB] += -Yseries_ft
+#             Ytrans[FB][FB] +=  Yseries_ft
+#             Ytrans[TB][FB] += -Yseries_ft
+#             Ytrans[TB][TB] +=  Yseries_ft 
+#         else:
+#             Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = Yseries_no_tap = Yseries_ft = 0
         
-        B = 1j*BTotal/2
-        Bshunt_f = (Yseries_no_tap + B)*(Tap_inv*Tap_inv) 
-        Bshunt_t = Yseries_no_tap + B
-        Ybr_list[i][2][0,0] = Bshunt_f
-        Ybr_list[i][2][1,1] = Bshunt_t
-        Yshunt[FB] +=  Bshunt_f - Yseries_ft
-        Yshunt[TB] +=  Bshunt_t - Yseries_ft
+#         B = 1j*BTotal/2
+#         Bshunt_f = (Yseries_no_tap + B)*(Tap_inv*Tap_inv) 
+#         Bshunt_t = Yseries_no_tap + B
+#         Ybr_list[i][2][0,0] = Bshunt_f
+#         Ybr_list[i][2][1,1] = Bshunt_t
+#         Yshunt[FB] +=  Bshunt_f - Yseries_ft
+#         Yshunt[TB] +=  Bshunt_t - Yseries_ft
 
-    if TB not in branches_buses[FB]:
-        branches_buses[FB].append(TB)
-    if FB not in branches_buses[TB]:
-        branches_buses[TB].append(FB)
+#     if TB not in branches_buses[FB]:
+#         branches_buses[FB].append(TB)
+#     if FB not in branches_buses[TB]:
+#         branches_buses[TB].append(FB)
 
 
-# Processing of .xlsx file data
-def preprocess_case_data():
-    global Buses_type, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches
-    global slack_bus, N, N_generators, generators, Number_bus, Yshunt, Ytrans
-    global Y, conduc_buses, Pg_sch, slack, list_gen, num_gen, Yre, Yimag
-    global scale
+# # Processing of .xlsx file data
+# def preprocess_case_data():
+#     global Buses_type, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches
+#     global slack_bus, N, N_generators, generators, Number_bus, Yshunt, Ytrans
+#     global Y, conduc_buses, Pg_sch, slack, list_gen, num_gen, Yre, Yimag
+#     global scale
 
-    Pd = buses[2]/100*scale
-    Qd = buses[3]/100*scale
-    Shunt = buses[5]*1j/100 + buses[4]/100
+#     Pd = buses[2]/100*scale
+#     Qd = buses[3]/100*scale
+#     Shunt = buses[5]*1j/100 + buses[4]/100
 
-    for i in range(N):
-        Number_bus[buses[0][i]] = i
-        if(buses[1][i]!=3):
-            Buses_type[i] = 'PQ'
-        else:
-            slack_bus = buses[0][i]
-            slack = i
-        Yshunt[i] =  Shunt[i]
+#     for i in range(N):
+#         Number_bus[buses[0][i]] = i
+#         if(buses[1][i]!=3):
+#             Buses_type[i] = 'PQ'
+#         else:
+#             slack_bus = buses[0][i]
+#             slack = i
+#         Yshunt[i] =  Shunt[i]
 
-    num_gen = N_generators-1
-    pos = 0
-    for i in range(N_generators):
-        bus_i = Number_bus[generators[0][i]]
-        if(bus_i!=slack):
-            list_gen[pos] = bus_i
-            pos += 1
-        Buses_type[bus_i] = 'PVLIM'
-        V[bus_i] = generators[5][i]
-        Pg[bus_i] = generators[1][i]/100*scale
-        Qgmax[bus_i] = generators[3][i]/100
-        Qgmin[bus_i] = generators[4][i]/100
+#     num_gen = N_generators-1
+#     pos = 0
+#     for i in range(N_generators):
+#         bus_i = Number_bus[generators[0][i]]
+#         if(bus_i!=slack):
+#             list_gen[pos] = bus_i
+#             pos += 1
+#         Buses_type[bus_i] = 'PVLIM'
+#         V[bus_i] = generators[5][i]
+#         Pg[bus_i] = generators[1][i]/100*scale
+#         Qgmax[bus_i] = generators[3][i]/100
+#         Qgmin[bus_i] = generators[4][i]/100
        
-    Buses_type[slack] = 'Slack'
-    Pg[slack] = 0
-    Pg_sch = np.copy(Pg)
+#     Buses_type[slack] = 'Slack'
+#     Pg[slack] = 0
+#     Pg_sch = np.copy(Pg)
 
-    for i in range(N_branches):
-        branches_processor(i, branches[0][i], branches[1][i], branches[2][i], branches[3][i], branches[4][i], branches[8][i], branches[9][i])
+#     for i in range(N_branches):
+#         branches_processor(i, branches[0][i], branches[1][i], branches[2][i], branches[3][i], branches[4][i], branches[8][i], branches[9][i])
 
-    for i in range(N):
-        branches_buses[i].sort()    # Variable that saves the branches
+#     for i in range(N):
+#         branches_buses[i].sort()    # Variable that saves the branches
 
-    Y = Ytrans.copy()
-    for i in range(N):
-        if( Yshunt[i].real != 0 ):
-            conduc_buses[i] = True
-        Y[i,i] += Yshunt[i]
-        if phase_barras[i]:
-            for k in range(len(phase_dict[i][0])):
-                Y[i,phase_dict[i][0][k]] += phase_dict[i][1][k]
-    Yre = np.real(Y)
-    Yimag = np.imag(Y)
+#     Y = Ytrans.copy()
+#     for i in range(N):
+#         if( Yshunt[i].real != 0 ):
+#             conduc_buses[i] = True
+#         Y[i,i] += Yshunt[i]
+#         if phase_barras[i]:
+#             for k in range(len(phase_dict[i][0])):
+#                 Y[i,phase_dict[i][0][k]] += phase_dict[i][1][k]
+#     Yre = np.real(Y)
+#     Yimag = np.imag(Y)
 
 
 # Modified Y matrix
@@ -687,10 +687,12 @@ def helm_ds_m2_pv1(
         Results_FileName='', Save_results=False,
 ):
     global V_complex_profile, N, buses, branches, N_branches, N_coef, N_generators, generators, T, Flag_divergence
-    global detailed_run_print, Mis, case, scale, N_coef, Q_limits
+    global detailed_run_print, Mis, case, scale, Q_limits
     global Power_print, V_polar_final, list_coef, S_gen, S_load, S_mismatch, Ploss, Pmismatch #Nuevos globales necesarias para la funcion write
     global Ybr_list, Shunt, slack, Pd, Qd, Pg, Qg, K, list_gen ##Nuevos globales necesarias para la funcion powerbalance
-    global Vre, Vimag, Yre, Yimag , branches_buses ##Nuevos globales necesarias para la funcion  Q_in y separate Vre Vimag
+    global Vre, Vimag, Yre, Yimag , branches_buses ##Nuevos globales necesarias para la funcion  Q_in y separate Vre Vimag    
+    global V, Qgmax, Qgmin, slack_bus, Buses_type, Y, Yshunt, Ytrans, conduc_buses ##Nuevos globales necesarias para la funcion process_case_data
+    global Pg_sch, num_gen, phase_barras, phase_dict, slack_CC ##Nuevos globales necesarias para la funcion process_case_data
 
     if (type(Print_Details) is not bool or \
         type(Mismatch) is not float or \
@@ -726,7 +728,20 @@ def helm_ds_m2_pv1(
     N_branches = len(branches.index)
 
     initialize_data_arrays()
-    preprocess_case_data()
+
+    (   Buses_type, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches,
+        slack_bus, N, N_generators, generators, Number_bus, Yshunt, Ytrans, Y,
+        conduc_buses, slack, list_gen, num_gen, Yre, Yimag, scale,
+        branches_buses, phase_barras, phase_dict, Ybr_list, Pg_sch,
+    ) = \
+    preprocess_case_data(
+        algorithm, scale, 
+        buses, N,
+        branches, N_branches,
+        generators, N_generators,
+        N_coef,
+    )
+
     while True:
         # Re-construct list_gen. List of generators (PV buses)
         create_generator_list()

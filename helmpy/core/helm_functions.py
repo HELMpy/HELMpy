@@ -5,6 +5,216 @@ import numpy as np
 import pandas as pd
 
 
+
+# Branches data processing to construct Ytrans, Yshunt, branches_buses and others
+def porcess_branches(branches, N_branches, Number_bus, Yshunt, N):
+    
+    # Arrays and data lists creation
+    Ytrans = np.zeros((N,N), dtype=complex)
+    branches_buses = [[i] for i in range(N)]
+    Ybr_list = list()
+    phase_barras = np.full(N, False)
+    phase_dict = dict()
+
+    for i in range(N_branches):
+        FromBus = branches[0][i]
+        ToBus = branches[1][i]
+        R = branches[2][i]
+        X = branches[3][i]
+        BTotal = branches[4][i]
+        Tap = branches[8][i]
+        Shift_degree = branches[9][i]
+
+        FB = Number_bus[FromBus] 
+        TB = Number_bus[ToBus]
+        Ybr_list.append([FB, TB, np.zeros((2,2),dtype=complex)])
+        Z = R + 1j*X
+        if Tap == 0 or Tap == 1:
+            if Z != 0:
+                Yseries_ft = 1/Z
+                if(Shift_degree==0):
+                    Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = -Yseries_ft
+                else:
+                    Shift = np.deg2rad(Shift_degree)
+                    Yseries_ft_shift = Yseries_ft/(np.exp(-1j*Shift))
+                    Yseries_tf_shift = Yseries_ft/(np.exp(1j*Shift))
+                    Ybr_list[i][2][0,1] = -Yseries_ft_shift
+                    Ybr_list[i][2][1,0] = -Yseries_tf_shift
+                    if(phase_barras[FB]):
+                        if( TB in phase_dict[FB][0]):
+                            phase_dict[FB][1][ phase_dict[FB][0].index(TB) ] += Yseries_ft - Yseries_ft_shift
+                        else:
+                            phase_dict[FB][0].append(TB)
+                            phase_dict[FB][1].append(Yseries_ft - Yseries_ft_shift)
+                    else:
+                        phase_dict[FB] = [[TB],[Yseries_ft - Yseries_ft_shift]]
+                        phase_barras[FB] = True
+                    if(phase_barras[TB]):
+                        if( FB in phase_dict[TB][0]):
+                            phase_dict[TB][1][ phase_dict[TB][0].index(FB) ] += Yseries_ft - Yseries_tf_shift
+                        else:
+                            phase_dict[FB][0].append(FB)
+                            phase_dict[FB][1].append(Yseries_ft - Yseries_tf_shift)
+                    else:
+                        phase_dict[TB] = [[FB],[Yseries_ft - Yseries_tf_shift]]
+                        phase_barras[TB] = True
+                Ytrans[FB][TB] += -Yseries_ft
+                Ytrans[FB][FB] +=  Yseries_ft
+                Ytrans[TB][FB] += -Yseries_ft
+                Ytrans[TB][TB] +=  Yseries_ft
+            else:
+                Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = Yseries_ft = 0
+
+            Bshunt_ft = 1j*BTotal/2
+            Ybr_list[i][2][0,0] = Ybr_list[i][2][1,1] = Bshunt_ft + Yseries_ft
+            Yshunt[FB] +=  Bshunt_ft
+            Yshunt[TB] +=  Bshunt_ft
+        else:
+            Tap_inv = 1/Tap
+            if Z != 0:
+                Yseries_no_tap = 1/Z
+                Yseries_ft = Yseries_no_tap * Tap_inv
+                if(Shift_degree==0):
+                    Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = -Yseries_ft
+                else:
+                    Shift = np.deg2rad(Shift_degree)                
+                    Yseries_ft_shift = Yseries_ft/(np.exp(-1j*Shift))
+                    Yseries_tf_shift = Yseries_ft/(np.exp(1j*Shift))
+                    Ybr_list[i][2][0,1] = -Yseries_ft_shift
+                    Ybr_list[i][2][1,0] = -Yseries_tf_shift
+                    if(phase_barras[FB]):
+                        if( TB in phase_dict[FB][0]):
+                            phase_dict[FB][1][ phase_dict[FB][0].index(TB) ] += Yseries_ft - Yseries_ft_shift
+                        else:
+                            phase_dict[FB][0].append(TB)
+                            phase_dict[FB][1].append(Yseries_ft - Yseries_ft_shift)
+                    else:
+                        phase_dict[FB] = [[TB],[Yseries_ft - Yseries_ft_shift]]
+                        phase_barras[FB] = True
+                    if(phase_barras[TB]):
+                        if( FB in phase_dict[TB][0]):
+                            phase_dict[TB][1][ phase_dict[TB][0].index(FB) ] += Yseries_ft - Yseries_tf_shift
+                        else:
+                            phase_dict[FB][0].append(FB)
+                            phase_dict[FB][1].append(Yseries_ft - Yseries_tf_shift)
+                    else:
+                        phase_dict[TB] = [[FB],[Yseries_ft - Yseries_tf_shift]]
+                        phase_barras[TB] = True
+                Ytrans[FB][TB] += -Yseries_ft
+                Ytrans[FB][FB] +=  Yseries_ft
+                Ytrans[TB][FB] += -Yseries_ft
+                Ytrans[TB][TB] +=  Yseries_ft 
+            else:
+                Ybr_list[i][2][0,1] = Ybr_list[i][2][1,0] = Yseries_no_tap = Yseries_ft = 0
+            
+            B = 1j*BTotal/2
+            Bshunt_f = (Yseries_no_tap + B)*(Tap_inv*Tap_inv) 
+            Bshunt_t = Yseries_no_tap + B
+            Ybr_list[i][2][0,0] = Bshunt_f
+            Ybr_list[i][2][1,1] = Bshunt_t
+            Yshunt[FB] +=  Bshunt_f - Yseries_ft
+            Yshunt[TB] +=  Bshunt_t - Yseries_ft
+
+        if TB not in branches_buses[FB]:
+            branches_buses[FB].append(TB)
+        if FB not in branches_buses[TB]:
+            branches_buses[TB].append(FB)
+
+    return(
+        Yshunt, Ytrans,
+        branches_buses, Ybr_list,
+        phase_barras, phase_dict,
+    )
+
+
+# Processing of .xlsx file data
+def preprocess_case_data(
+    algorithm, scale, 
+    buses, N,
+    branches, N_branches,
+    generators, N_generators,
+    N_coef, barras_CC=None,
+):
+    Number_bus = dict()
+    Buses_type = [0 for i in range(N)]
+    conduc_buses = np.full(N, False)
+    Yshunt = np.zeros(N, dtype=complex)
+    V = np.ones(N)
+    Pg = np.zeros(N)
+    Qgmax = np.zeros(N)
+    Qgmin = np.zeros(N)
+    list_gen = np.zeros(N_generators-1, dtype=int)
+
+
+    Pd = buses[2]/100*scale
+    Qd = buses[3]/100*scale
+    Shunt = buses[5]*1j/100 + buses[4]/100
+
+    for i in range(N):
+        Number_bus[buses[0][i]] = i
+        if(buses[1][i]!=3):
+            Buses_type[i] = 'PQ'
+        else:
+            slack_bus = buses[0][i]
+            slack = i
+        Yshunt[i] =  Shunt[i]
+
+    num_gen = N_generators-1
+    pos = 0
+    for i in range(N_generators):
+        bus_i = Number_bus[generators[0][i]]
+        if(bus_i!=slack):
+            list_gen[pos] = bus_i
+            pos += 1
+        Buses_type[bus_i] = 'PVLIM'
+        V[bus_i] = generators[5][i]
+        Pg[bus_i] = generators[1][i]/100*scale
+        Qgmax[bus_i] = generators[3][i]/100
+        Qgmin[bus_i] = generators[4][i]/100
+       
+    Buses_type[slack] = 'Slack'
+    Pg[slack] = 0
+    if 'DS' in algorithm:
+        Pg_sch = np.copy(Pg)
+
+    (   Yshunt, Ytrans,
+        branches_buses, Ybr_list,
+        phase_barras, phase_dict,
+    ) = \
+    porcess_branches(branches, N_branches, Number_bus, Yshunt, N) 
+
+    for i in range(N):
+        branches_buses[i].sort()    # Variable that saves the branches
+        if 'PV2' in algorithm:
+            barras_CC[i] = np.zeros(N_coef, dtype=complex)    # Variable that saves the calculated values of PV buses
+
+    Y = Ytrans.copy()
+    for i in range(N):
+        if( Yshunt[i].real != 0 ):
+            conduc_buses[i] = True
+        Y[i,i] += Yshunt[i]
+        if phase_barras[i]:
+            for k in range(len(phase_dict[i][0])):
+                Y[i,phase_dict[i][0][k]] += phase_dict[i][1][k]
+    Yre = np.real(Y)
+    Yimag = np.imag(Y)
+
+    if 'DS' in algorithm:
+        return(
+            Buses_type, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches,
+            slack_bus, N, N_generators, generators, Number_bus, Yshunt, Ytrans, Y,
+            conduc_buses, slack, list_gen, num_gen, Yre, Yimag, scale,
+            branches_buses, phase_barras, phase_dict, Ybr_list, Pg_sch
+        )
+    else:
+        return(
+            Buses_type, V, Qgmax, Qgmin, Pd, Qd, Pg, Shunt, buses, branches, N_branches,
+            slack_bus, N, N_generators, generators, Number_bus, Yshunt, Ytrans, Y,
+            conduc_buses, slack, list_gen, num_gen, Yre, Yimag, scale,
+            branches_buses, phase_barras, phase_dict, Ybr_list
+        )
+
+
 # Computing P injection at bus i. Must be used after Voltages_profile()
 def P_iny(i, Vre, Vimag, Yre, Yimag, branches_buses):
     Piny = 0
@@ -128,7 +338,6 @@ def power_balance(
     else:
         return (Power_branches, S_gen, S_load, S_mismatch)
 
-    
 
 def print_voltage_profile(V_polar_final,N):
     print("\n\tVoltage profile:")
