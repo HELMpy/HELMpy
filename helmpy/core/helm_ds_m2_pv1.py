@@ -509,74 +509,34 @@ def Gen_bus(i,n):  # bus i, coefficient n
     Soluc_eval[2*i + 1][n] = np.imag(result)
 
 
-# Verification of Qgen limits for PVLIM buses
-def Check_PVLIM():
-    global Buses_type, Qg, Qd, Qgmax, Qgmin, N, num_gen, list_gen_remove, list_gen, detailed_run_print
-    global Vre, Vimag, Yre, Yimag , branches_buses # globales para Q_iny
-    global V_complex_profile # para separate_complex_to_real_imag_voltages
+# # Verification of Qgen limits for PVLIM buses
+# def Check_PVLIM():
+#     global Buses_type, Qg, Qd, Qgmax, Qgmin, N, num_gen, list_gen_remove, list_gen, detailed_run_print
+#     global Vre, Vimag, Yre, Yimag , branches_buses # globales para Q_iny
+#     global V_complex_profile # para separate_complex_to_real_imag_voltages
     
-    flag_violacion = 0
-    Vre, Vimag = separate_complex_to_real_imag_voltages(V_complex_profile)
+#     flag_violacion = 0
+#     Vre, Vimag = separate_complex_to_real_imag_voltages(V_complex_profile)
 
-    for i in list_gen:
-        Qg_incog = Q_iny(i, Vre, Vimag, Yre, Yimag , branches_buses) + Qd[i]
-        Qg[i] = Qg_incog
-        if((Qg_incog>Qgmax[i]) or (Qg_incog<Qgmin[i])):
-            flag_violacion = 1
-            Buses_type[i] = 'PQ'
-            num_gen -= 1
-            list_gen_remove.append(i)
-            if(Qg_incog>Qgmax[i]):
-                Qg[i] = Qgmax[i]
-            else:
-                Qg[i] = Qgmin[i]
-            if detailed_run_print:
-                print('Bus %d exceeded its Qgen limit with %f. The exceeded limit %f will be assigned to the bus'%(i+1,Qg_incog,Qg[i]))
-    return flag_violacion
-
-
-# Re-construct list_gen. List of generators (PV buses)
-def create_generator_list():
-    global num_gen, list_gen, list_gen_remove
-    list_gen_aux = np.zeros(num_gen, dtype=int)
-    if(len(list_gen_remove)!=0):
-        pos = 0
-        for i in list_gen:
-            if(i not in list_gen_remove):
-                list_gen_aux[pos] = i
-                pos += 1
-        list_gen = list_gen_aux.copy()
+#     for i in list_gen:
+#         Qg_incog = Q_iny(i, Vre, Vimag, Yre, Yimag , branches_buses) + Qd[i]
+#         Qg[i] = Qg_incog
+#         if((Qg_incog>Qgmax[i]) or (Qg_incog<Qgmin[i])):
+#             flag_violacion = 1
+#             Buses_type[i] = 'PQ'
+#             num_gen -= 1
+#             list_gen_remove.append(i)
+#             if(Qg_incog>Qgmax[i]):
+#                 Qg[i] = Qgmax[i]
+#             else:
+#                 Qg[i] = Qgmin[i]
+#             if detailed_run_print:
+#                 print('Bus %d exceeded its Qgen limit with %f. The exceeded limit %f will be assigned to the bus'%(i+1,Qg_incog,Qg[i]))
+#     return flag_violacion
 
 
 # Vector of the participation factors: K's
 K = np.zeros(N, dtype=float)
-Distrib = []
-# Computing of the K factor for each PV bus and the slack bus.
-# Only the PV buses are considered to calculate Pgen_total. The PV buses that were converted to PQ buses are NOT considered.
-def compute_k_factor():
-    global K, Pg, Buses_type, slack, N, Pg_sch, Pd, Distrib, list_gen
-    Pgen_total = 0
-    K = np.zeros(N, dtype=float)
-    Distrib = []
-    Pg = np.copy(Pg_sch)
-    # Active power that the slack must generate to compensate the system
-    Pg[slack] = np.sum(Pd) - np.sum(Pg)
-    for i in list_gen:
-        if(Pg[i]>0):
-            Pgen_total += Pg[i]
-            Distrib.append(i)
-    if(Pg[slack]>0):
-        Pgen_total += Pg[slack]
-        Distrib.append(slack)
-    for i in Distrib:
-        K[i] = Pg[i]/Pgen_total
-
-
-# Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
-def K_slack_1():
-    global K, slack
-    K = np.zeros(N, dtype=float)
-    K[slack] = 1
 
 
 # Series coefficients counter (to mismatch) 
@@ -586,6 +546,8 @@ def computing_voltages_mismatch():
     global series_large, Y_Vsp_PV, Soluc_no_eval, Vre_PV, Soluc_eval, coefficients, N
     global Mis, Ytrans_mod,V_complex, W, Pi, Si, Pg, Pd, Qg, Qd, V_complex_profile
     global first_check, pade_til, solve, list_coef, detailed_run_print, Flag_divergence, Q_limits
+    global Buses_type, Vre, Vimag, Qgmax, Qgmin, Yre, Yimag, branches_buses, list_gen, list_gen_remove # Por funcion check limits 
+
     Vre_PV = np.zeros((N, N_coef), dtype=float)
     V_complex = np.zeros((N, N_coef), dtype=complex)
     W = np.ones((N, N_coef), dtype=complex)
@@ -658,12 +620,18 @@ def computing_voltages_mismatch():
                             break
             if Flag_Mismatch == 0:
                 # Qgen check or ignore limits
+                Vre, Vimag = separate_complex_to_real_imag_voltages(V_complex_profile)
                 if(Q_limits):
-                    if(Check_PVLIM()):
+                    flag_violacion, Qg, Buses_type = Check_PVLIM(
+                        Qg, Qd, Qgmax, Qgmin, Vre, Vimag, Yre, Yimag,
+                        branches_buses, list_gen, list_gen_remove, Buses_type,
+                        detailed_run_print,
+                    )
+                    if flag_violacion:
                         if detailed_run_print:
                             print("At coefficient %d the system is to be resolved due to PVLIM to PQ switches\n"%series_large)
                         list_coef.append(series_large)
-                        Flag_recalculate = 0
+                        Flag_recalculate = False
                         return Flag_recalculate
                 print('\nConvergence has been reached. %d coefficients were calculated'%series_large)
                 list_coef.append(series_large)
@@ -693,6 +661,7 @@ def helm_ds_m2_pv1(
     global Vre, Vimag, Yre, Yimag , branches_buses ##Nuevos globales necesarias para la funcion  Q_in y separate Vre Vimag    
     global V, Qgmax, Qgmin, slack_bus, Buses_type, Y, Yshunt, Ytrans, conduc_buses ##Nuevos globales necesarias para la funcion process_case_data
     global Pg_sch, num_gen, phase_barras, phase_dict, slack_CC ##Nuevos globales necesarias para la funcion process_case_data
+    global list_gen_remove
 
     if (type(Print_Details) is not bool or \
         type(Mismatch) is not float or \
@@ -744,12 +713,12 @@ def helm_ds_m2_pv1(
 
     while True:
         # Re-construct list_gen. List of generators (PV buses)
-        create_generator_list()
+        list_gen = np.setdiff1d(list_gen, list_gen_remove, assume_unique=True)
         # Computing of the K factor for each PV bus and the slack bus.
-        compute_k_factor()
+        K, Pg = compute_k_factor(Pg, Pg_sch, Pd, slack, N, list_gen)
         # Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
         if not(DSB_model):
-            K_slack_1()
+            K_slack_1(K,slack)
         # Create modified Y matrix and list that contains the respective column to its voltage on PV and PVLIM buses 
         Modif_Ytrans()
         # Arrays and lists creation

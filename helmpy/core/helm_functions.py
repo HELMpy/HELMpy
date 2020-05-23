@@ -254,6 +254,52 @@ def convert_complex_to_polar_voltages(complex_voltage, N):
     polar_voltage[:,1] = np.angle(complex_voltage, deg=True)
     return polar_voltage
 
+# Verification of Qgen limits for PVLIM buses
+def Check_PVLIM(
+    Qg, Qd, Qgmax, Qgmin, Vre, Vimag, Yre, Yimag,
+    branches_buses, list_gen, list_gen_remove, Buses_type,
+    detailed_run_print,
+):    
+    flag_violacion = False
+    for i in list_gen:
+        Qg_incog = Q_iny(i, Vre, Vimag, Yre, Yimag , branches_buses) + Qd[i]
+        Qg[i] = Qg_incog
+        if Qg_incog > Qgmax[i] or Qg_incog < Qgmin[i]:
+            flag_violacion = True
+            Buses_type[i] = 'PQ'
+            list_gen_remove.append(i)
+            Qg[i] = Qgmax[i] if Qg_incog > Qgmax[i] else Qgmin[i]
+            if detailed_run_print:
+                print('Bus %d exceeded its Qgen limit with %f. The exceeded limit %f will be assigned to the bus'%(i+1,Qg_incog,Qg[i]))
+    return flag_violacion, Qg, Buses_type,
+
+
+# Computing of the K factor for each PV bus and the slack bus.
+# Only the PV buses are considered to calculate Pgen_total. The PV buses that were converted to PQ buses are NOT considered.
+def compute_k_factor(Pg, Pg_sch, Pd, slack, N, list_gen):
+    Pgen_total = 0
+    K = np.zeros(N, dtype=float)
+    Distrib = []
+    Pg = np.copy(Pg_sch)
+    # Active power that the slack must generate to compensate the system
+    Pg[slack] = np.sum(Pd) - np.sum(Pg)
+    for i in list_gen:
+        if(Pg[i]>0):
+            Pgen_total += Pg[i]
+            Distrib.append(i)
+    if(Pg[slack]>0):
+        Pgen_total += Pg[slack]
+        Distrib.append(slack)
+    for i in Distrib:
+        K[i] = Pg[i]/Pgen_total
+    return K, Pg
+
+
+# Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
+def K_slack_1(K,slack):
+    K.fill(0)
+    K[slack] = 1
+
 
 # Computation of power flow trough branches and power balance
 def power_balance(

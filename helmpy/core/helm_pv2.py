@@ -439,43 +439,30 @@ def evaluate_pv_bus_equation(i,n):  # bus i, coefficient n
     Soluc_eval[2*i + 1][n] = VV/2
 
 
-# Verification of Qgen limits for PVLIM buses
-def Check_PVLIM():
-    global Buses_type, Qg, Qd, Qgmax, Qgmin, N, num_gen, list_gen_remove, list_gen, detailed_run_print
-    global Vre, Vimag, Yre, Yimag , branches_buses # globales para Q_iny
-    global V_complex_profile # para separate_complex_to_real_imag_voltages
+# # Verification of Qgen limits for PVLIM buses
+# def Check_PVLIM():
+#     global Buses_type, Qg, Qd, Qgmax, Qgmin, N, num_gen, list_gen_remove, list_gen, detailed_run_print
+#     global Vre, Vimag, Yre, Yimag , branches_buses # globales para Q_iny
+#     global V_complex_profile # para separate_complex_to_real_imag_voltages
     
-    flag_violacion = 0
-    Vre, Vimag = separate_complex_to_real_imag_voltages(V_complex_profile)
+#     flag_violacion = 0
+#     Vre, Vimag = separate_complex_to_real_imag_voltages(V_complex_profile)
 
-    for i in list_gen:
-        Qg_incog = Q_iny(i, Vre, Vimag, Yre, Yimag , branches_buses) + Qd[i]
-        Qg[i] = Qg_incog
-        if((Qg_incog>Qgmax[i]) or (Qg_incog<Qgmin[i])):
-            flag_violacion = 1
-            Buses_type[i] = 'PQ'
-            num_gen -= 1
-            list_gen_remove.append(i)
-            if(Qg_incog>Qgmax[i]):
-                Qg[i] = Qgmax[i]
-            else:
-                Qg[i] = Qgmin[i]
-            if detailed_run_print:
-                print('Bus %d exceeded its Qgen limit with %f. The exceeded limit %f will be assigned to the bus'%(i+1,Qg_incog,Qg[i]))
-    return flag_violacion
-
-
-# Re-construct list_gen. List of generators (PV buses)
-def create_generator_list():
-    global num_gen, list_gen, list_gen_remove
-    list_gen_aux = np.zeros(num_gen, dtype=int)
-    if(len(list_gen_remove)!=0):
-        pos = 0
-        for i in list_gen:
-            if(i not in list_gen_remove):
-                list_gen_aux[pos] = i
-                pos += 1
-        list_gen = list_gen_aux.copy()
+#     for i in list_gen:
+#         Qg_incog = Q_iny(i, Vre, Vimag, Yre, Yimag , branches_buses) + Qd[i]
+#         Qg[i] = Qg_incog
+#         if((Qg_incog>Qgmax[i]) or (Qg_incog<Qgmin[i])):
+#             flag_violacion = 1
+#             Buses_type[i] = 'PQ'
+#             num_gen -= 1
+#             list_gen_remove.append(i)
+#             if(Qg_incog>Qgmax[i]):
+#                 Qg[i] = Qgmax[i]
+#             else:
+#                 Qg[i] = Qgmin[i]
+#             if detailed_run_print:
+#                 print('Bus %d exceeded its Qgen limit with %f. The exceeded limit %f will be assigned to the bus'%(i+1,Qg_incog,Qg[i]))
+#     return flag_violacion
 
 
 # Series coefficients counter (to mismatch) 
@@ -485,6 +472,8 @@ def computing_voltages_mismatch():
     global series_large, Soluc_no_eval, Vre_PV, Soluc_eval, coefficients, N, Mis
     global Ytrans_mod, V_complex, W, Pi, Si, Pg, Pd, Qg, Qd, V_complex_profile
     global first_check, pade_til, solve, detailed_run_print, list_coef, Flag_divergence, Q_limits
+    global Buses_type, Vre, Vimag, Qgmax, Qgmin, Yre, Yimag, branches_buses, list_gen, list_gen_remove # Por funcion check limits 
+
     V_complex = np.zeros((N, N_coef), dtype=complex)
     W = np.ones((N, N_coef), dtype=complex)
     Flag_recalculate = 1
@@ -544,8 +533,14 @@ def computing_voltages_mismatch():
                             break
             if Flag_Mismatch == 0:
                 # Qgen check or ignore limits
+                Vre, Vimag = separate_complex_to_real_imag_voltages(V_complex_profile)
                 if(Q_limits):
-                    if(Check_PVLIM()):
+                    flag_violacion, Qg, Buses_type = Check_PVLIM(
+                        Qg, Qd, Qgmax, Qgmin, Vre, Vimag, Yre, Yimag,
+                        branches_buses, list_gen, list_gen_remove, Buses_type,
+                        detailed_run_print,
+                    )
+                    if flag_violacion:
                         if detailed_run_print:
                             print("At coefficient %d the system is to be resolved due to PVLIM to PQ switches\n"%series_large)
                         list_coef.append(series_large)
@@ -579,6 +574,7 @@ def helm_pv2(
     global Vre, Vimag, Yre, Yimag , branches_buses ##Nuevos globales necesarias para la funcion  Q_in y separate Vre Vimag
     global V, Qgmax, Qgmin, slack_bus, Buses_type, Y, Yshunt, Ytrans, conduc_buses ##Nuevos globales necesarias para la funcion process_case_data
     global num_gen, phase_barras, phase_dict, barras_CC ##Nuevos globales necesarias para la funcion process_case_data
+    global list_gen_remove
 
     if (type(Print_Details) is not bool or \
         type(Mismatch) is not float or \
@@ -629,7 +625,7 @@ def helm_pv2(
 
     while True:
         # Re-construct list_gen. List of generators (PV buses)
-        create_generator_list()
+        list_gen = np.setdiff1d(list_gen, list_gen_remove, assume_unique=True)
         # Create modified Y matrix and list that contains the respective column to its voltage on PV and PVLIM buses 
         Modif_Ytrans()
         # Arrays and lists creation
