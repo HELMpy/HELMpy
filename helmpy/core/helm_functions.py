@@ -461,7 +461,7 @@ def write_results_on_files(
     power_flow_dataframe['P flow through branch and elements (MW)'] = Power_branches[:,6]
     power_flow_dataframe['Q flow through branch and elements (MVAR)'] = Power_branches[:,7]
     xlsx_name = files_name + '.xlsx'
-    xlsx_file = pd.ExcelWriter(xlsx_name)
+    xlsx_file = pd.ExcelWriter(xlsx_name) # pylint: disable=abstract-class-instantiated
     voltages_dataframe.to_excel(xlsx_file, sheet_name="Buses")
     power_flow_dataframe.to_excel(xlsx_file, sheet_name="Branches")
     xlsx_file.save()
