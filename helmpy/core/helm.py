@@ -37,13 +37,13 @@ def Modif_Ytrans(case, run):
     Buses_type = run.Buses_type
 
     # Declare new variables
-    Ytrans_mod = np.zeros((2*N+2,2*N+2),dtype=float)
+    Ytrans_mod = np.zeros((2*N+1,2*N+1),dtype=float)
     Y_Vsp_PV =[]
 
     for i in range(N):
         if Buses_type[i] == 'Slack':
-            Ytrans_mod[2*i][2*i]=1
-            Ytrans_mod[2*i + 1][2*i + 1]=1
+            Ytrans_mod[2*i][2*i] = 1
+            Ytrans_mod[2*i + 1][2*i + 1] = 1
         else:
             for j in branches_buses[i]:
                 Ytrans_mod[2*i][2*j] = Ytrans[i][j].real
@@ -55,22 +55,17 @@ def Modif_Ytrans(case, run):
     for j in branches_buses[slack]:
         Ytrans_mod[2*N][2*j] = Ytrans[slack][j].real
         Ytrans_mod[2*N][2*j + 1] = Ytrans[slack][j].imag*-1
-        Ytrans_mod[2*N + 1][2*j] = Ytrans[slack][j].imag
-        Ytrans_mod[2*N + 1][2*j + 1] = Ytrans[slack][j].real
 
     # Penultimate columns
     for i in run.list_gen:
         Ytrans_mod[i*2][2*N] = -run.K[i]
     Ytrans_mod[2*N][2*N] = -run.K[slack]
 
-    # Last column
-    Ytrans_mod[2*N + 1][2*N + 1] = 1
-
     for i in run.list_gen:
         if slack in branches_buses[i]:
-            array = np.zeros( 2*len(branches_buses[i])+2, dtype=float)  
-        else:  
-            array = np.zeros( 2*len(branches_buses[i]), dtype=float)
+            array = np.zeros( 2*len(branches_buses[i])+1, dtype=np.float64)
+        else:
+            array = np.zeros( 2*len(branches_buses[i]), dtype=np.float64)
         pos = 0
         for k in branches_buses[i]:
             array[pos] = Ytrans_mod[2*k][2*i]
@@ -80,9 +75,7 @@ def Modif_Ytrans(case, run):
             pos += 2
         if slack in branches_buses[i]:
             array[pos] = Ytrans_mod[2*N][2*i]
-            array[pos+1] = Ytrans_mod[2*N+1][2*i]
             Ytrans_mod[2*N][2*i] = 0
-            Ytrans_mod[2*N+1][2*i] = 0
         Y_Vsp_PV.append([i, array.copy()])
         Ytrans_mod[2*i + 1][2*i] = 1
 
@@ -103,11 +96,11 @@ def Unknowns_soluc(N,run):
     Buses_type = run.Buses_type
 
     # Assign 0 to the first coefficients and evaluated solutions. 
-    coefficients[:,0] = 0
-    Soluc_eval[:,0] = 0
+    coefficients[:,0].fill(0)
+    Soluc_eval[:,0].fill(0)
 
     for i in range(N):
-        if Buses_type[i]=='PV' or Buses_type[i]=='PVLIM':
+        if Buses_type[i] == 'PV' or Buses_type[i] == 'PVLIM':
             Soluc_no_eval.append([i,Gen_bus])
         else:
             coefficients[2*i][0] = 1
@@ -161,19 +154,16 @@ def P_Loss_Q_slack(nothing, n, Si, Pi, case, run): # coefficient n
     coefficients = run.coefficients
 
     i = case.slack
-    aux = 0
     aux_Ploss = 0
     for k in range(1,n):
-        aux += coefficients[2*N + 1][k]*np.conj(W[i][n-k])
         aux_Ploss += coefficients[N*2][k]*np.conj(W[i][n-k])
     if case.phase_barras[i]:
         PP = 0
         for k in range(len(phase_dict[i][0])):
             PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1]
-        result = Pi[i]*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] - PP - aux*1j + run.K[i]*aux_Ploss
+        result = Pi[i]*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] - PP + run.K[i]*aux_Ploss
     else:
-        result = Pi[i]*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] - aux*1j + run.K[i]*aux_Ploss
-    run.Soluc_eval[2*N + 1][n] = np.imag(result)
+        result = Pi[i]*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] + run.K[i]*aux_Ploss
     run.Soluc_eval[2*N][n] = np.real(result)
 
 
@@ -255,8 +245,8 @@ def P_iny(i, case, run):
 
     Piny = 0
     for k in branches_buses[i]:
-        Piny += Vre[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) \
-                + Vimag[i]*(Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
+        Piny += Vre[i] * (Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) \
+                + Vimag[i] * (Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
     return Piny
 
 
@@ -271,8 +261,8 @@ def Q_iny(i, case, run):
 
     Qiny = 0
     for k in branches_buses[i]:
-        Qiny += Vimag[i]*(Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) \
-                - Vre[i]*(Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
+        Qiny += Vimag[i] * (Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) \
+                - Vre[i] * (Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
     return Qiny
 
 
@@ -405,9 +395,8 @@ def computing_voltages_mismatch(detailed_run_print, mismatch, max_coef, enforce_
                 resta_columnas_PV[2*k] += array[pos]
                 resta_columnas_PV[2*k+1] += array[pos+1]
                 pos += 2
-            if( slack in branches_buses[Vre_vec[0]]):
+            if slack in branches_buses[Vre_vec[0]]:
                 resta_columnas_PV[2*N] += array[pos]
-                resta_columnas_PV[2*N+1] += array[pos+1]
         
         right_hand_side = Soluc_eval[:,coef_actual] - resta_columnas_PV
 
@@ -541,18 +530,18 @@ def power_balance(enforce_Q_limits, algorithm, case, run):
         else:
             Pgen = np.sum(Pg) + P_iny(slack, case, run) + Pd[slack]
 
-    elif 'NR' in algorithm:
+    # elif 'NR' in algorithm:
 
-        if not enforce_Q_limits:
-            for i in list_gen:
-                Qg[i] = Qi[i] + Qd[i]
-        Qgen = (np.sum(Qg) + Qi[slack] + Qd[slack]) * 1j
+    #     if not enforce_Q_limits:
+    #         for i in list_gen:
+    #             Qg[i] = Qi[i] + Qd[i]
+    #     Qgen = (np.sum(Qg) + Qi[slack] + Qd[slack]) * 1j
 
-        if 'DS' in algorithm: # algorithm models the distributed slack
-            Pmismatch = P_losses_line + np.real(S_shunt)
-            Pgen = np.sum(Pg + K*Pmismatch)
-        else:
-            Pgen = np.sum(Pg) + Pi[slack] + Pd[slack]
+    #     if 'DS' in algorithm: # algorithm models the distributed slack
+    #         Pmismatch = P_losses_line + np.real(S_shunt)
+    #         Pgen = np.sum(Pg + K*Pmismatch)
+    #     else:
+    #         Pgen = np.sum(Pg) + Pi[slack] + Pd[slack]
 
     S_gen = (Pgen + Qgen) * 100
     S_load = (Pload + Qload) * 100

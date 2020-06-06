@@ -248,8 +248,8 @@ class RunVariables:
         self.list_gen_remove = []
         self.list_coef = []
         self.solve = None
-        self.coefficients = np.empty((2*N+2,set_coef), dtype=np.float64)
-        self.Soluc_eval = np.empty((2*N+2,set_coef), dtype=np.float64)
+        self.coefficients = np.empty((2*N+1,set_coef), dtype=np.float64)
+        self.Soluc_eval = np.empty((2*N+1,set_coef), dtype=np.float64)
         self.Soluc_no_eval = []
         self.V_complex = np.empty((N, set_coef), dtype=np.complex128)
         self.W = np.empty((N, set_coef), dtype=np.complex128)
@@ -265,7 +265,7 @@ class RunVariables:
         # HELM PV1
         self.Y_Vsp_PV = []
         self.Vre_PV = np.empty((N, set_coef), dtype=np.float64)
-        self.resta_columnas_PV = np.empty(2*N+2, dtype=np.float64)
+        self.resta_columnas_PV = np.empty(2*N+1, dtype=np.float64)
 
     def expand_coef_arrays(self):
         """
@@ -281,11 +281,11 @@ class RunVariables:
 
             # coefficients
             coefficients = self.coefficients
-            self.coefficients = np.empty((2*N+2,max_coef), dtype=np.float64)
+            self.coefficients = np.empty((2*N+1,max_coef), dtype=np.float64)
             self.coefficients[:,0:set_coef] = coefficients
             # Soluc_eval
             Soluc_eval = self.Soluc_eval
-            self.Soluc_eval = np.empty((2*N+2,max_coef), dtype=np.float64)
+            self.Soluc_eval = np.empty((2*N+1,max_coef), dtype=np.float64)
             self.Soluc_eval[:,0:set_coef] = Soluc_eval
             # V_complex
             V_complex = self.V_complex
