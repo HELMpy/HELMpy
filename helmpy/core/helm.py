@@ -18,7 +18,7 @@ from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import factorized
 
 from helmpy.core.helm_pade import Pade
-from helmpy.core.clases import RunVariables
+from helmpy.core.clases import RunVariables, CaseData
 
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
@@ -26,69 +26,88 @@ pd.set_option('display.max_columns',1000)
 pd.set_option('display.width',1000)
 
 
-
 # Create modified Y matrix and list that contains the respective column to its voltage on PV and PVLIM buses 
-def Modif_Ytrans(case, run):
+def modif_Ytrans(DSB_model_method, pv_bus_model, case, run):
     # Assign local variables for faster access
     N = case.N
     slack = case.slack
     Ytrans = case.Ytrans
     branches_buses = case.branches_buses
     Buses_type = run.Buses_type
+    K = run.K
+
+    large = 2*N if DSB_model_method is None else 2*N+1
 
     # Declare new variables
-    Ytrans_mod = np.zeros((2*N+1,2*N+1),dtype=float)
+    Ytrans_mod = np.zeros((large,large), dtype=float)
     Y_Vsp_PV =[]
 
     for i in range(N):
         if Buses_type[i] == 'Slack':
             Ytrans_mod[2*i][2*i] = 1
             Ytrans_mod[2*i + 1][2*i + 1] = 1
-        else:
+        elif Buses_type[i] == 'PQ' or pv_bus_model == 1:
             for j in branches_buses[i]:
                 Ytrans_mod[2*i][2*j] = Ytrans[i][j].real
                 Ytrans_mod[2*i][2*j + 1] = Ytrans[i][j].imag*-1
                 Ytrans_mod[2*i + 1][2*j] = Ytrans[i][j].imag
                 Ytrans_mod[2*i + 1][2*j + 1] = Ytrans[i][j].real
+        else: # pv_bus_model == 2:
+            Ytrans_mod[2*i + 1][2*i] = 1
+            for j in branches_buses[i]:
+                Ytrans_mod[2*i][2*j] = Ytrans[i][j].real
+                Ytrans_mod[2*i][2*j + 1] = Ytrans[i][j].imag*-1
 
-    # Penultimate row and last row
-    for j in branches_buses[slack]:
-        Ytrans_mod[2*N][2*j] = Ytrans[slack][j].real
-        Ytrans_mod[2*N][2*j + 1] = Ytrans[slack][j].imag*-1
+    if DSB_model_method is not None:
+        # Last row
+        for j in branches_buses[slack]:
+            Ytrans_mod[2*N][2*j] = Ytrans[slack][j].real
+            Ytrans_mod[2*N][2*j + 1] = Ytrans[slack][j].imag*-1
+        # Last column
+        for i in run.list_gen:
+            Ytrans_mod[i*2][2*N] = -K[i]
+        Ytrans_mod[2*N][2*N] = -K[slack]
 
-    # Penultimate columns
-    for i in run.list_gen:
-        Ytrans_mod[i*2][2*N] = -run.K[i]
-    Ytrans_mod[2*N][2*N] = -run.K[slack]
-
-    for i in run.list_gen:
-        if slack in branches_buses[i]:
-            array = np.zeros( 2*len(branches_buses[i])+1, dtype=np.float64)
+    if pv_bus_model == 1:
+        if DSB_model_method is None:
+            for i in run.list_gen:
+                array = np.zeros( 2*len(branches_buses[i]), dtype=np.float64)
+                pos = 0
+                for k in branches_buses[i]:
+                    array[pos] = Ytrans_mod[2*k][2*i]
+                    array[pos+1] = Ytrans_mod[2*k+1][2*i]
+                    Ytrans_mod[2*k][2*i] = 0
+                    Ytrans_mod[2*k+1][2*i] = 0
+                    pos += 2
+                Y_Vsp_PV.append([i, array.copy()])
+                Ytrans_mod[2*i + 1][2*i] = 1
         else:
-            array = np.zeros( 2*len(branches_buses[i]), dtype=np.float64)
-        pos = 0
-        for k in branches_buses[i]:
-            array[pos] = Ytrans_mod[2*k][2*i]
-            array[pos+1] = Ytrans_mod[2*k+1][2*i]
-            Ytrans_mod[2*k][2*i] = 0
-            Ytrans_mod[2*k+1][2*i] = 0
-            pos += 2
-        if slack in branches_buses[i]:
-            array[pos] = Ytrans_mod[2*N][2*i]
-            Ytrans_mod[2*N][2*i] = 0
-        Y_Vsp_PV.append([i, array.copy()])
-        Ytrans_mod[2*i + 1][2*i] = 1
-
+            for i in run.list_gen:
+                if slack in branches_buses[i]:
+                    array = np.zeros( 2*len(branches_buses[i])+1, dtype=np.float64)
+                else:
+                    array = np.zeros( 2*len(branches_buses[i]), dtype=np.float64)
+                pos = 0
+                for k in branches_buses[i]:
+                    array[pos] = Ytrans_mod[2*k][2*i]
+                    array[pos+1] = Ytrans_mod[2*k+1][2*i]
+                    Ytrans_mod[2*k][2*i] = 0
+                    Ytrans_mod[2*k+1][2*i] = 0
+                    pos += 2
+                if slack in branches_buses[i]:
+                    array[pos] = Ytrans_mod[2*N][2*i]
+                    Ytrans_mod[2*N][2*i] = 0
+                Y_Vsp_PV.append([i, array.copy()])
+                Ytrans_mod[2*i + 1][2*i] = 1
+        run.Y_Vsp_PV = Y_Vsp_PV
+    
     # Return a function for solving a sparse linear system, with Ytrans_mod pre-factorized.
     solve = factorized(csc_matrix(Ytrans_mod))
-
-    # Output
-    run.Y_Vsp_PV = Y_Vsp_PV
     run.solve = solve
 
 
 # Arrays and lists creation
-def Unknowns_soluc(N,run):
+def Unknowns_soluc(DSB_model_method, pv_bus_model, N, run):
     # Assign local variables for faster access
     coefficients = run.coefficients
     Soluc_eval = run.Soluc_eval
@@ -98,17 +117,25 @@ def Unknowns_soluc(N,run):
     # Assign 0 to the first coefficients and evaluated solutions. 
     coefficients[:,0].fill(0)
     Soluc_eval[:,0].fill(0)
+    Soluc_no_eval.clear()
 
     for i in range(N):
         if Buses_type[i] == 'PV' or Buses_type[i] == 'PVLIM':
-            Soluc_no_eval.append([i,Gen_bus])
+            if pv_bus_model == 1:
+                Soluc_no_eval.append([i,evaluate_bus_eq_dsb_generator_pv1])
+            else: # pv_bus_model == 2:
+                coefficients[2*i][0] = 1
+                Soluc_no_eval.append([i,evaluate_bus_eq_dsb_generator_pv2])
         else:
             coefficients[2*i][0] = 1
             if Buses_type[i] == 'PQ':
-                Soluc_no_eval.append([i, evaluate_pq_load_buses_equation])
-            else:
-                Soluc_no_eval.append([i, evaluate_slack_bus_equation])
-    Soluc_no_eval.append([N,P_Loss_Q_slack])
+                Soluc_no_eval.append([i, evaluate_bus_eq_dsb_load])
+            else: # Buses_type[i] == 'slack'
+                Soluc_no_eval.append([i, evaluate_bus_eq_dsb_slack])
+    if DSB_model_method == 1:
+        Soluc_no_eval.append([N,evaluate_bus_eq_dsb_method1])
+    else: # DSB_model_method == 2:
+        Soluc_no_eval.append([N,evaluate_bus_eq_dsb_method2])
 
 
 # Real voltage of PV and PVLIM buses computing
@@ -127,25 +154,12 @@ def Calculo_Vre_PV(n, case, run): # coefficient n
             Vre_PV[i][n] = -aux/2
         elif n == 1:
             Vre_PV[i][n] = (V[i]**2 - 1)/2
-        else:
-            Vre_PV[i][n] = 1
-            
 
-# W computing - Inverse voltages "W" array
-def calculate_inverse_voltages_w_array(n, case, run):
-    # Assign local variables for faster access
-    W = run.W
-    V_complex = run.V_complex
-
-    for i in range(case.N):
-        aux = 0
-        for k in range(n):
-            aux += (W[i][k] * V_complex[i][n-k])
-        W[i][n] = -aux
-
+#---------------------------------------------------------------------------------------
+# Functions lo evaluate the rigth hand side of the matrix equation
 
 # Function to evaluate the PV bus equation for the slack bus 
-def P_Loss_Q_slack(nothing, n, Si, Pi, case, run): # coefficient n
+def evaluate_bus_eq_dsb_method1(nothing, n, Si, Pi, case, run): # coefficient n
     # Assign local variables for faster access
     N = case.N
     phase_dict = case.phase_dict
@@ -167,36 +181,12 @@ def P_Loss_Q_slack(nothing, n, Si, Pi, case, run): # coefficient n
     run.Soluc_eval[2*N][n] = np.real(result)
 
 
-# Function to evaluate the slack bus equation 
-def evaluate_slack_bus_equation(i, n, Si, Pi, case, run): # bus i, coefficient n
-    if n == 1:
-        run.Soluc_eval[2*i][n] = case.V[i] - 1
-        run.Soluc_eval[2*i + 1][n] = 0
-    else:
-        run.Soluc_eval[2*i][n] = 0
-        run.Soluc_eval[2*i + 1][n] = 0
-
-
-# Function to evaluate the PQ buses equation 
-def evaluate_pq_load_buses_equation(i, n, Si, Pi, case, run): # bus i, coefficient n
-    # Assign local variables for faster access
-    phase_dict = case.phase_dict
-    W = run.W
-    V_complex = run.V_complex
- 
-    if case.phase_barras[i]:
-        PP = 0
-        for k in range(len(phase_dict[i][0])):
-            PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1]
-        result = np.conj(Si[i])*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] - PP
-    else:
-        result = np.conj(Si[i])*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1]
-    run.Soluc_eval[2*i][n] = np.real(result)
-    run.Soluc_eval[2*i + 1][n] = np.imag(result)
+def evaluate_bus_eq_dsb_method2(nothing, n, Si, Pi, case, run): # coefficient n
+    pass
 
 
 # Function to evaluate the PV buses equation            
-def Gen_bus(i, n, Si, Pi, case, run): # bus i, coefficient n
+def evaluate_bus_eq_dsb_generator_pv1(i, n, Si, Pi, case, run): # bus i, coefficient n
     # Assign local variables for faster access
     phase_dict = case.phase_dict
     W = run.W
@@ -219,19 +209,136 @@ def Gen_bus(i, n, Si, Pi, case, run): # bus i, coefficient n
     run.Soluc_eval[2*i + 1][n] = np.imag(result)
 
 
+def evaluate_bus_eq_dsb_generator_pv2(i, n, Si, Pi, case, run): # bus i, coefficient n
+    # Assign local variables for faster access
+    V = case.V
+    Ytrans = case.Ytrans
+    branches_buses = case.branches_buses
+    phase_dict = case.phase_dict
+    V_complex = run.V_complex
+    barras_CC = run.barras_CC
+
+    if n > 2:
+        CC = 0
+        PPP = 0
+        for x in range(1,n-1):
+            PPP += np.conj(V_complex[i][n-x]) * barras_CC[i][x]
+        PP = 0
+        for k in branches_buses[i]:
+            PP += Ytrans[i][k] * V_complex[k][n-1]
+        barras_CC[i][n-1] = PP
+        PPP += np.conj(V_complex[i][1]) * PP
+        CC -= PPP.real
+        # Valor Shunt
+        if case.conduc_buses[i]:
+            CC -= np.real(case.Yshunt[i]) * ( run.VVanterior[i] + 2*V_complex[i][n-1].real )
+        # Valores phase
+        if case.phase_barras[i]:
+            PPP = 0
+            for x in range(n):
+                PP = 0
+                for k in range(len(phase_dict[i][0])):
+                    PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1-x]
+                PPP += np.conj(V_complex[i][x]) * PP
+            CC -= PPP.real
+    elif n == 2:
+        CC = 0
+        PP = 0
+        for k in branches_buses[i]:
+            PP += Ytrans[i][k] * V_complex[k][1]
+        barras_CC[i][1] = PP
+        CC -= ( np.conj(V_complex[i][1]) * PP ).real
+        # Valor Shunt
+        if case.conduc_buses[i]:
+            CC -= np.real(case.Yshunt[i])*2*V_complex[i][1].real
+        # Valores phase
+        if case.phase_barras[i]:
+            PPP = 0
+            for x in range(n):
+                PP = 0
+                for k in range(len(phase_dict[i][0])):
+                    PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1-x]
+                PPP += np.conj(V_complex[i][x]) * PP
+            CC -= PPP.real
+    elif n == 1:
+        CC = Pi[i] - np.real(case.Yshunt[i])
+        # Valores phase
+        if case.phase_barras[i]:
+            for valor in phase_dict[i][1]:
+                CC -= valor.real
+
+    if n == 1:
+        VV = V[i]**2 - 1
+    else:
+        VV = 0
+        for k in range(1,n):
+            VV += V_complex[i][k] * np.conj(V_complex[i][n-k])
+        run.VVanterior[i] = VV
+        VV = -VV
+
+    run.Soluc_eval[2*i][n] = CC
+    run.Soluc_eval[2*i + 1][n] = VV/2
+
+
+# Function to evaluate the PQ buses equation 
+def evaluate_bus_eq_dsb_load(i, n, Si, Pi, case, run): # bus i, coefficient n
+    # Assign local variables for faster access
+    phase_dict = case.phase_dict
+    W = run.W
+    V_complex = run.V_complex
+ 
+    if case.phase_barras[i]:
+        PP = 0
+        for k in range(len(phase_dict[i][0])):
+            PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1]
+        result = np.conj(Si[i])*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] - PP
+    else:
+        result = np.conj(Si[i])*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1]
+    run.Soluc_eval[2*i][n] = np.real(result)
+    run.Soluc_eval[2*i + 1][n] = np.imag(result)
+
+
+# Function to evaluate the slack bus equation 
+def evaluate_bus_eq_dsb_slack(i, n, Si, Pi, case, run): # bus i, coefficient n
+    if n == 1:
+        run.Soluc_eval[2*i][n] = case.V[i] - 1
+        run.Soluc_eval[2*i + 1][n] = 0
+    else:
+        run.Soluc_eval[2*i][n] = 0
+        run.Soluc_eval[2*i + 1][n] = 0
+
+#---------------------------------------------------------------------------------------
+
 # Complex voltages computing
-def compute_complex_voltages(n, case, run):  # coefficient n
+def compute_complex_voltages(n, pv_bus_model, case, run):  # coefficient n
     # Assign local variables for faster access
     Vre_PV = run.Vre_PV
     V_complex = run.V_complex
     coefficients = run.coefficients
     Buses_type = run.Buses_type
 
-    for i in range(case.N):
-        if Buses_type[i]=='PV' or Buses_type[i]=='PVLIM':
-            V_complex[i][n] = Vre_PV[i][n] + 1j*coefficients[i*2 + 1][n]
-        else:
+    if pv_bus_model == 2:
+        for i in range(case.N):
             V_complex[i][n] = coefficients[i*2][n] + 1j*coefficients[i*2 + 1][n]
+    else: # pv_bus_model == 1:
+        for i in range(case.N):
+            if Buses_type[i] == 'PV' or Buses_type[i] == 'PVLIM':
+                V_complex[i][n] = Vre_PV[i][n] + 1j*coefficients[i*2 + 1][n]
+            else:
+                V_complex[i][n] = coefficients[i*2][n] + 1j*coefficients[i*2 + 1][n]
+
+
+# W computing - Inverse voltages "W" array
+def calculate_inverse_voltages_w_array(n, case, run):
+    # Assign local variables for faster access
+    W = run.W
+    V_complex = run.V_complex
+
+    for i in range(case.N):
+        aux = 0
+        for k in range(n):
+            aux += (W[i][k] * V_complex[i][n-k])
+        W[i][n] = -aux
 
 
 # Computing P injection at bus i. Must be used after Voltages_profile()
@@ -264,22 +371,6 @@ def Q_iny(i, case, run):
         Qiny += Vimag[i] * (Yre[i][k]*Vre[k] - Yimag[i][k]*Vimag[k]) \
                 - Vre[i] * (Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
     return Qiny
-
-
-# Create variable V_polar_final from V and tita_degree in NR
-def create_polar_voltages_variable(V, tita_degree, N):
-    polar_voltage = np.empty((N,2), dtype=np.float64)
-    polar_voltage[:,0] = V  # Voltage magnitude
-    polar_voltage[:,1] = tita_degree  # Voltage phase angle
-    return polar_voltage
-
-
-# Separate each voltage value in magnitude and phase angle (degrees)
-def convert_complex_to_polar_voltages(complex_voltage, N):
-    polar_voltage = np.empty((N,2), dtype=np.float64)
-    polar_voltage[:,0] = np.absolute(complex_voltage)
-    polar_voltage[:,1] = np.angle(complex_voltage, deg=True)
-    return polar_voltage
 
 
 # Verification of Qgen limits for PVLIM buses
@@ -337,7 +428,10 @@ def K_slack_1(case, run):
 
 
 # Loop of coefficients computing until the mismatch is reached
-def computing_voltages_mismatch(detailed_run_print, mismatch, max_coef, enforce_Q_limits, case, run):
+def computing_voltages_mismatch(
+    detailed_run_print, mismatch, max_coef, enforce_Q_limits,
+    pv_bus_model, DSB_model_method, case, run
+):
     # Assign local variables for faster access
     slack = case.slack
     branches_buses = case.branches_buses
@@ -359,9 +453,10 @@ def computing_voltages_mismatch(detailed_run_print, mismatch, max_coef, enforce_
     run.W[:,0] = 1 # Assign 1 to the inverse voltages of coefficients 0
 
     # Compute Vre_PV and V_complex for coefficient 0
-    Calculo_Vre_PV(0, case, run)
-    compute_complex_voltages(0, case, run)
-    
+    if pv_bus_model == 1:
+        Vre_PV[:,0] = 1
+    compute_complex_voltages(0, pv_bus_model, case, run)
+
     # Compute active and complex power injection
     Pi = run.Pg - case.Pd
     Si = Pi + run.Qg*1j - case.Qd*1j
@@ -379,32 +474,36 @@ def computing_voltages_mismatch(detailed_run_print, mismatch, max_coef, enforce_
         if detailed_run_print:
             print("Computing coefficient: %d"%coef_actual)
 
-        # Compute Vre_PV for current coefficient
-        Calculo_Vre_PV(coef_actual, case, run)
+        # Compute Vre_PV for current coefficient. Only for pv_bus_model 1 
+        if pv_bus_model == 1:
+            Calculo_Vre_PV(coef_actual, case, run)
 
         # Compute the right hand side of the matrix equation
         for i in range(len(Soluc_no_eval)):
             Soluc_no_eval[i][1](Soluc_no_eval[i][0], coef_actual, Si, Pi, case, run)
 
-        # Columns to subtract
-        resta_columnas_PV.fill(0)
-        for Vre_vec in Y_Vsp_PV:
-            array = Vre_PV[Vre_vec[0]][coef_actual] * Vre_vec[1]
-            pos = 0
-            for k in branches_buses[Vre_vec[0]]:
-                resta_columnas_PV[2*k] += array[pos]
-                resta_columnas_PV[2*k+1] += array[pos+1]
-                pos += 2
-            if slack in branches_buses[Vre_vec[0]]:
-                resta_columnas_PV[2*N] += array[pos]
-        
-        right_hand_side = Soluc_eval[:,coef_actual] - resta_columnas_PV
+        # Determine right_hand_side of matrix equation
+        if pv_bus_model == 1:
+            # Columns to subtract
+            resta_columnas_PV.fill(0)
+            for Vre_vec in Y_Vsp_PV:
+                array = Vre_PV[Vre_vec[0]][coef_actual] * Vre_vec[1]
+                pos = 0
+                for k in branches_buses[Vre_vec[0]]:
+                    resta_columnas_PV[2*k] += array[pos]
+                    resta_columnas_PV[2*k+1] += array[pos+1]
+                    pos += 2
+                if slack in branches_buses[Vre_vec[0]]:
+                    resta_columnas_PV[2*N] += array[pos]
+            right_hand_side = Soluc_eval[:,coef_actual] - resta_columnas_PV
+        else: # pv_bus_model == 2:
+            right_hand_side = Soluc_eval[:,coef_actual]
 
         # New column of coefficients
         coefficients[:,coef_actual] = solve(right_hand_side)
 
         # Compute V_complex and inverse voltages for current coefficient 
-        compute_complex_voltages(coef_actual, case, run)
+        compute_complex_voltages(coef_actual, pv_bus_model, case, run)
         calculate_inverse_voltages_w_array(coef_actual, case, run)
         
         # Mismatch check
@@ -459,6 +558,14 @@ def computing_voltages_mismatch(detailed_run_print, mismatch, max_coef, enforce_
             break
     
     return flag_recalculate, flag_divergence, series_large
+
+
+# Separate each voltage value in magnitude and phase angle (degrees)
+def convert_complex_to_polar_voltages(complex_voltage, N):
+    polar_voltage = np.empty((N,2), dtype=np.float64)
+    polar_voltage[:,0] = np.absolute(complex_voltage)
+    polar_voltage[:,1] = np.angle(complex_voltage, deg=True)
+    return polar_voltage
 
 
 # Computation of power flow trough branches and power balance
@@ -649,31 +756,77 @@ def write_results_on_files(
     print("\nResults have been written on the files:\n\t%s \n\t%s"%(xlsx_name,txt_name))
 
 
-# Main loop
-def helm(
+def validate_arguments(
         case,
-        detailed_run_print=False, mismatch=1e-4, scale=1,
-        max_coefficients=100, enforce_Q_limits=True, DSB_model=True,
-        results_file_name=None, save_results=False,
+        detailed_run_print, mismatch, scale,
+        max_coefficients, enforce_Q_limits,
+        results_file_name, save_results,
+        pv_bus_model, DSB_model, DSB_model_method, 
 ):
     if (type(detailed_run_print) is not bool or \
         type(mismatch) is not float or \
         not(
-            results_file_name is None or
-            type(results_file_name) is str
-        ) or \
-        not(
-                type(scale) is float or
-                type(scale) is int
+            type(scale) is float or
+            type(scale) is int
         ) or \
         type(max_coefficients) is not int or \
         type(enforce_Q_limits) is not bool or \
-        type(DSB_model) is not bool
+        not(
+            results_file_name is None or
+            type(results_file_name) is str
+        ) or \
+        type(save_results) is not bool or \
+        type(pv_bus_model) is not int or \
+        type(DSB_model) is not bool or \
+        not(
+            DSB_model_method is None or
+            type(DSB_model_method) is int
+        )
     ):
         print("Erroneous argument type.")
+        return False, None
+    if max_coefficients < 5:
+        print("'max_coefficients' must be equal or greater than five (5).")
+        return False, None
+    if pv_bus_model not in (1, 2):
+        print("'pv_bus_model' must be the integer 1 or 2.",)
+        return False, None
+    if DSB_model_method is not None and DSB_model_method not in (1, 2):
+        print("'DSB_model_method' must be the integer 1 or 2.",)
+        return False, None
+
+    return True
+
+
+# Main loop
+def helm(
+    case,
+    detailed_run_print=False, mismatch=1e-4, scale=1,
+    max_coefficients=100, enforce_Q_limits=True,
+    results_file_name=None, save_results=False,
+    pv_bus_model=2, DSB_model=False, DSB_model_method=None, 
+):
+    # Arguments validation
+    if not validate_arguments(
+        case,
+        detailed_run_print, mismatch, scale,
+        max_coefficients, enforce_Q_limits,
+        results_file_name, save_results,
+        pv_bus_model, DSB_model, DSB_model_method, 
+    ):
         return None
 
-    algorithm = 'HELM DS M1 PV1'
+    if DSB_model and DSB_model_method is None:
+        DSB_model_method = 2
+
+    #  Construct algorithm string
+    pv_bus_model_str = 'PV1' if pv_bus_model == 1 else 'PV2'
+    if DSB_model_method is not None:
+        DSB_model_method_str = 'M1' if DSB_model_method == 1 else 'M2'
+        algorithm = 'HELM DS ' + DSB_model_method_str + ' ' + pv_bus_model_str
+    else:
+        algorithm = 'HELM ' + pv_bus_model_str
+
     if results_file_name is None:
         results_file_name = case.name
     max_coef = max_coefficients
@@ -684,7 +837,7 @@ def helm(
 
     # Declare run_variables_class objects.
     # Variables/arrays inicialization are inside it
-    run = RunVariables(case, max_coef)
+    run = RunVariables(case, pv_bus_model, max_coef)
 
     while True:
         # Re-construct list_gen. List of generators (PV buses)
@@ -693,16 +846,17 @@ def helm(
         if DSB_model:
             # Computing of the K factor for each PV bus and the slack bus.
             compute_k_factor(case, run)
-        else:
+        elif DSB_model_method is not None:
             # Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
             K_slack_1(case, run)
         # Create modified Y matrix and list that contains the respective column to its voltage on PV and PVLIM buses 
-        Modif_Ytrans(case, run)
+        modif_Ytrans(DSB_model_method, pv_bus_model, case, run)
         # Arrays and lists creation
-        Unknowns_soluc(case.N, run)
+        Unknowns_soluc(DSB_model_method, pv_bus_model, case.N, run)
         # Loop of coefficients computing until the mismatch is reached
         flag_recalculate, flag_divergence, series_large = computing_voltages_mismatch(
-            detailed_run_print, mismatch, max_coef, enforce_Q_limits, case, run)
+            detailed_run_print, mismatch, max_coef, enforce_Q_limits, 
+            pv_bus_model, DSB_model_method, case, run)
         if not flag_recalculate:
             break
     # reset scale case
@@ -732,3 +886,4 @@ def helm(
                 Ploss, Pmismatch
             )
         return run.V_complex_profile.copy()
+        # return run

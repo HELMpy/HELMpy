@@ -7,7 +7,7 @@ import pandas as pd
 
 
 # Branches data processing to construct Ytrans, Yshunt, branches_buses and others
-def porcess_branches(branches, N_branches, case):
+def process_branches(branches, N_branches, case):
     for i in range(N_branches):
         FromBus = branches[0][i]
         ToBus = branches[1][i]
@@ -159,7 +159,7 @@ def create_case_data_object_from_xlsx(grid_data_file_path, case_name=None):
     case.Buses_type[case.slack] = 'Slack'
     case.Pg[case.slack] = 0
 
-    porcess_branches(branches, N_branches, case) 
+    process_branches(branches, N_branches, case) 
 
     for i in range(N):
         case.branches_buses[i].sort()    # Variable that saves the branches
@@ -224,7 +224,7 @@ class CaseData:
 
 
 class RunVariables:
-    def __init__(self, case, max_coef):
+    def __init__(self, case, pv_bus_model, max_coef):
         # For readability
         N = case.N
 
@@ -240,6 +240,7 @@ class RunVariables:
 
         # Variables
         # Y_trans_mod is not included, but it may be.
+        self.pv_bus_model = pv_bus_model
         self.max_coef = max_coef
         self.Qg = np.zeros(N, dtype=np.float64)
         self.V_complex_profile = np.empty(N, dtype=np.complex128)
@@ -258,15 +259,21 @@ class RunVariables:
         self.K = np.zeros(N, dtype=np.float64)
         self.Pg_imbalance = np.sum(case.Pd) - np.sum(case.Pg)
 
-        # HELM PV2
-        self.barras_CC = dict()
-        # self.barras_CC[i] = np.zeros(max_coef, dtype=np.complex128)
+        # HELM pv_bus_model 2
+        if pv_bus_model == 2:
+            self.barras_CC = dict()
+            for i in self.list_gen:
+                self.barras_CC[i] = np.zeros(max_coef, dtype=np.complex128) # zeros??
+            self.VVanterior = np.zeros(N, dtype=np.float64) # zeros??
+        else: self.barras_CC=None; self.VVanterior=None
 
-        # HELM PV1
-        self.Y_Vsp_PV = []
-        self.Vre_PV = np.empty((N, set_coef), dtype=np.float64)
-        self.resta_columnas_PV = np.empty(2*N+1, dtype=np.float64)
-
+        # HELM pv_bus_model 1
+        if pv_bus_model == 1:
+            self.Y_Vsp_PV = []
+            self.Vre_PV = np.empty((N, set_coef), dtype=np.float64)
+            self.resta_columnas_PV = np.empty(2*N+1, dtype=np.float64)
+        else: self.Y_Vsp_PV=None; self.Vre_PV=None; self.resta_columnas_PV=None
+        
     def expand_coef_arrays(self):
         """
         Expand the arrays of coefficients to the maximum number of coefficents (max_coef).
@@ -291,11 +298,12 @@ class RunVariables:
             V_complex = self.V_complex
             self.V_complex = np.empty((N, max_coef), dtype=np.complex128)
             self.V_complex[:,0:set_coef] = V_complex
-            # Vre_PV
-            Vre_PV = self.Vre_PV
-            self.Vre_PV = np.empty((N, max_coef), dtype=np.float64)
-            self.Vre_PV[:,0:set_coef] = Vre_PV
             # W
             W = self.W
             self.W = np.empty((N, max_coef), dtype=np.complex128)
             self.W[:,0:set_coef] = W
+            if self.pv_bus_model == 1:
+                # Vre_PV
+                Vre_PV = self.Vre_PV
+                self.Vre_PV = np.empty((N, max_coef), dtype=np.float64)
+                self.Vre_PV[:,0:set_coef] = Vre_PV
