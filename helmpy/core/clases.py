@@ -224,7 +224,7 @@ class CaseData:
 
 
 class RunVariables:
-    def __init__(self, case, pv_bus_model, max_coef):
+    def __init__(self, case, pv_bus_model, DSB_model_method, max_coef):
         # For readability
         N = case.N
 
@@ -241,6 +241,7 @@ class RunVariables:
         # Variables
         # Y_trans_mod is not included, but it may be.
         self.pv_bus_model = pv_bus_model
+        self.DSB_model_method = DSB_model_method
         self.max_coef = max_coef
         self.Qg = np.zeros(N, dtype=np.float64)
         self.V_complex_profile = np.empty(N, dtype=np.complex128)
@@ -259,12 +260,18 @@ class RunVariables:
         self.K = np.zeros(N, dtype=np.float64)
         self.Pg_imbalance = np.sum(case.Pd) - np.sum(case.Pg)
 
+        # DSB_model_method 2
+        if DSB_model_method == 2:
+            self.slack_CC  = np.empty(set_coef, dtype=np.complex128)
+        else:
+            self.slack_CC = None
+
         # HELM pv_bus_model 2
         if pv_bus_model == 2:
             self.barras_CC = dict()
             for i in self.list_gen:
-                self.barras_CC[i] = np.zeros(max_coef, dtype=np.complex128) # zeros??
-            self.VVanterior = np.zeros(N, dtype=np.float64) # zeros??
+                self.barras_CC[i] = np.empty(set_coef, dtype=np.complex128)
+            self.VVanterior = np.empty(N, dtype=np.float64)
         else: self.barras_CC=None; self.VVanterior=None
 
         # HELM pv_bus_model 1
@@ -290,20 +297,37 @@ class RunVariables:
             coefficients = self.coefficients
             self.coefficients = np.empty((2*N+1,max_coef), dtype=np.float64)
             self.coefficients[:,0:set_coef] = coefficients
+
             # Soluc_eval
             Soluc_eval = self.Soluc_eval
             self.Soluc_eval = np.empty((2*N+1,max_coef), dtype=np.float64)
             self.Soluc_eval[:,0:set_coef] = Soluc_eval
+
             # V_complex
             V_complex = self.V_complex
             self.V_complex = np.empty((N, max_coef), dtype=np.complex128)
             self.V_complex[:,0:set_coef] = V_complex
+
             # W
             W = self.W
             self.W = np.empty((N, max_coef), dtype=np.complex128)
             self.W[:,0:set_coef] = W
+
             if self.pv_bus_model == 1:
                 # Vre_PV
                 Vre_PV = self.Vre_PV
                 self.Vre_PV = np.empty((N, max_coef), dtype=np.float64)
                 self.Vre_PV[:,0:set_coef] = Vre_PV
+
+            if self.pv_bus_model == 2:
+                # barras_CC
+                for i in self.list_gen:
+                    barras_CC = self.barras_CC[i]
+                    self.barras_CC[i] = np.empty(max_coef, dtype=np.complex128)
+                    self.barras_CC[i][:set_coef] = barras_CC
+
+            # DSB_model_method 2
+            slack_CC = self.slack_CC
+            self.slack_CC = np.empty(max_coef, dtype=np.complex128)
+            self.slack_CC[:set_coef] = slack_CC
+

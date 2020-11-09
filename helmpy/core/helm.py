@@ -117,6 +117,7 @@ def Unknowns_soluc(DSB_model_method, pv_bus_model, N, run):
     # Assign 0 to the first coefficients and evaluated solutions. 
     coefficients[:,0].fill(0)
     Soluc_eval[:,0].fill(0)
+    # Clear list of not evaluated solutions (functions per bus)
     Soluc_no_eval.clear()
 
     for i in range(N):
@@ -159,7 +160,7 @@ def Calculo_Vre_PV(n, case, run): # coefficient n
 # Functions lo evaluate the rigth hand side of the matrix equation
 
 # Function to evaluate the PV bus equation for the slack bus 
-def evaluate_bus_eq_dsb_method1(nothing, n, Si, Pi, case, run): # coefficient n
+def evaluate_bus_eq_dsb_method1(_, n, Si, Pi, case, run): # coefficient n
     # Assign local variables for faster access
     N = case.N
     phase_dict = case.phase_dict
@@ -181,8 +182,68 @@ def evaluate_bus_eq_dsb_method1(nothing, n, Si, Pi, case, run): # coefficient n
     run.Soluc_eval[2*N][n] = np.real(result)
 
 
-def evaluate_bus_eq_dsb_method2(nothing, n, Si, Pi, case, run): # coefficient n
-    pass
+def evaluate_bus_eq_dsb_method2(_, n, Si, Pi, case, run): # coefficient n
+    # Assign local variables for faster access
+    phase_dict = case.phase_dict
+    branches_buses = case.branches_buses
+    Ytrans = case.Ytrans
+    V_complex = run.V_complex
+    slack_CC = run.slack_CC
+    i = case.slack
+
+    if n > 2:
+        CC = 0
+        PPP = 0
+        for x in range(1, n-1):
+            PPP += np.conj(V_complex[i][n-x]) * slack_CC[x]
+        PP = 0
+        for k in branches_buses[i]:
+            PP += Ytrans[i][k] * V_complex[k][n-1]
+        slack_CC[n-1] = PP
+        PPP += np.conj(V_complex[i][1]) * PP
+        CC -= PPP.real
+        # Valor Shunt
+        if case.conduc_buses[i]:
+            VV = 0
+            for k in range(1,n-1):
+                VV += V_complex[i][k] * np.conj(V_complex[i][n-k])
+            CC -= np.real(case.Yshunt[i]) * ( VV + 2*V_complex[i][n-1].real )
+        # Valores phase
+        if case.phase_barras[i]:
+            PPP = 0
+            for x in range(n):
+                PP = 0
+                for k in range(len(phase_dict[i][0])):
+                    PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1-x]
+                PPP += np.conj(V_complex[i][x]) * PP
+            CC -= PPP.real
+    elif n == 1:
+        CC = Pi[i] - np.real(case.Yshunt[i])
+        # Valores phase
+        if case.phase_barras[i]:
+            for valor in phase_dict[i][1]:
+                CC -= valor.real
+    elif n == 2:
+        CC = 0
+        PP = 0
+        for k in branches_buses[i]:
+            PP += Ytrans[i][k] * V_complex[k][1]
+        slack_CC[1] = PP
+        CC -= ( np.conj(V_complex[i][1]) * PP ).real
+        # Valor Shunt
+        if case.conduc_buses[i]:
+            CC -= np.real(case.Yshunt[i])*2*V_complex[i][1].real
+        # Valores phase
+        if case.phase_barras[i]:
+            PPP = 0
+            for x in range(n):
+                PP = 0
+                for k in range(len(phase_dict[i][0])):
+                    PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1-x]
+                PPP += np.conj(V_complex[i][x]) * PP
+            CC -= PPP.real
+
+    run.Soluc_eval[2*case.N][n] = CC
 
 
 # Function to evaluate the PV buses equation            
@@ -837,7 +898,7 @@ def helm(
 
     # Declare run_variables_class objects.
     # Variables/arrays inicialization are inside it
-    run = RunVariables(case, pv_bus_model, max_coef)
+    run = RunVariables(case, pv_bus_model, DSB_model_method, max_coef)
 
     while True:
         # Re-construct list_gen. List of generators (PV buses)
