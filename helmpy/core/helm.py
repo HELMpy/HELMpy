@@ -17,8 +17,8 @@ import pandas as pd
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import factorized
 
-from helmpy.core.helm_pade import Pade
 from helmpy.core.clases import RunVariables, CaseData
+from helmpy.core.analytic_continuation import Pade
 
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
