@@ -36,10 +36,8 @@ def modif_Ytrans(DSB_model_method, pv_bus_model, case, run):
     Buses_type = run.Buses_type
     K = run.K
 
-    large = 2*N if DSB_model_method is None else 2*N+1
-
     # Declare new variables
-    Ytrans_mod = np.zeros((large,large), dtype=float)
+    Ytrans_mod = np.zeros((run.length,run.length), dtype=float)
     Y_Vsp_PV =[]
 
     for i in range(N):
@@ -110,14 +108,13 @@ def modif_Ytrans(DSB_model_method, pv_bus_model, case, run):
 def Unknowns_soluc(DSB_model_method, pv_bus_model, N, run):
     # Assign local variables for faster access
     coefficients = run.coefficients
-    Soluc_eval = run.Soluc_eval
-    Soluc_no_eval = run.Soluc_no_eval 
+    Soluc_no_eval = run.Soluc_no_eval
     Buses_type = run.Buses_type
 
-    # Assign 0 to the first coefficients and evaluated solutions. 
+    # Assign 0 to the first coefficients and evaluated solutions.
     coefficients[:,0].fill(0)
-    Soluc_eval[:,0].fill(0)
-    # Clear list of not evaluated solutions (functions per bus)
+    run.Soluc_eval[:,0].fill(0)
+    # Clear list of not evaluated solutions (function per bus)
     Soluc_no_eval.clear()
 
     for i in range(N):
@@ -135,7 +132,7 @@ def Unknowns_soluc(DSB_model_method, pv_bus_model, N, run):
                 Soluc_no_eval.append([i, evaluate_bus_eq_dsb_slack])
     if DSB_model_method == 1:
         Soluc_no_eval.append([N,evaluate_bus_eq_dsb_method1])
-    else: # DSB_model_method == 2:
+    elif DSB_model_method == 2:
         Soluc_no_eval.append([N,evaluate_bus_eq_dsb_method2])
 
 
@@ -143,11 +140,10 @@ def Unknowns_soluc(DSB_model_method, pv_bus_model, N, run):
 def Calculo_Vre_PV(n, case, run): # coefficient n
     # Assign local variables for faster access
     V = case.V
-    Vre_PV = run.Vre_PV
     V_complex = run.V_complex
-    list_gen = run.list_gen
+    Vre_PV = run.Vre_PV
 
-    for i in list_gen:
+    for i in run.list_gen:
         if n > 1:
             aux = 0
             for k in range(1,n):
@@ -159,7 +155,7 @@ def Calculo_Vre_PV(n, case, run): # coefficient n
 #---------------------------------------------------------------------------------------
 # Functions lo evaluate the rigth hand side of the matrix equation
 
-# Function to evaluate the PV bus equation for the slack bus 
+# Function to evaluate the PV bus equation for the slack bus by method 1
 def evaluate_bus_eq_dsb_method1(_, n, Si, Pi, case, run): # coefficient n
     # Assign local variables for faster access
     N = case.N
@@ -167,29 +163,34 @@ def evaluate_bus_eq_dsb_method1(_, n, Si, Pi, case, run): # coefficient n
     W = run.W
     V_complex = run.V_complex
     coefficients = run.coefficients
-
     i = case.slack
+
     aux_Ploss = 0
     for k in range(1,n):
         aux_Ploss += coefficients[N*2][k]*np.conj(W[i][n-k])
+    
+    PP = 0
     if case.phase_barras[i]:
-        PP = 0
         for k in range(len(phase_dict[i][0])):
             PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1]
-        result = Pi[i]*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] - PP + run.K[i]*aux_Ploss
-    else:
-        result = Pi[i]*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] + run.K[i]*aux_Ploss
+
+    result = Pi[i]*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] - PP + run.K[i]*aux_Ploss
+
     run.Soluc_eval[2*N][n] = np.real(result)
 
 
+# Function to evaluate the PV bus equation for the slack bus by method 2
 def evaluate_bus_eq_dsb_method2(_, n, Si, Pi, case, run): # coefficient n
     # Assign local variables for faster access
-    phase_dict = case.phase_dict
-    branches_buses = case.branches_buses
     Ytrans = case.Ytrans
+    branches_buses = case.branches_buses
+    phase_dict = case.phase_dict
     V_complex = run.V_complex
-    slack_CC = run.slack_CC
     i = case.slack
+    if run.pv_bus_model == 2:
+        slack_CC = run.barras_CC[i]
+    else:
+        slack_CC = run.slack_CC
 
     if n > 2:
         CC = 0
@@ -246,33 +247,38 @@ def evaluate_bus_eq_dsb_method2(_, n, Si, Pi, case, run): # coefficient n
     run.Soluc_eval[2*case.N][n] = CC
 
 
-# Function to evaluate the PV buses equation            
+# Function to evaluate the PV buses equation by py model 1
 def evaluate_bus_eq_dsb_generator_pv1(i, n, Si, Pi, case, run): # bus i, coefficient n
     # Assign local variables for faster access
+    N = case.N
     phase_dict = case.phase_dict
     W = run.W
     V_complex = run.V_complex
     coefficients = run.coefficients
 
     aux = 0
-    aux_Ploss = 0
     for k in range(1,n):
         aux += coefficients[i*2][k]*np.conj(W[i][n-k])
-        aux_Ploss += coefficients[case.N*2][k]*np.conj(W[i][n-k])
+    
+    aux_Ploss = 0
+    if run.DSB_model_method is not None:
+        for k in range(1,n):
+            aux_Ploss += coefficients[N*2][k]*np.conj(W[i][n-k])
+    
+    PP = 0
     if case.phase_barras[i]:
-        PP = 0
         for k in range(len(phase_dict[i][0])):
             PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1]
-        result = Pi[i]*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1]  - PP - aux*1j + run.K[i]*aux_Ploss
-    else:
-        result = Pi[i]*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] - aux*1j + run.K[i]*aux_Ploss
+    
+    result = Pi[i]*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1]  - PP - aux*1j + run.K[i]*aux_Ploss
+    
     run.Soluc_eval[2*i][n] = np.real(result)
     run.Soluc_eval[2*i + 1][n] = np.imag(result)
 
 
+# Function to evaluate the PV buses equation by py model 2
 def evaluate_bus_eq_dsb_generator_pv2(i, n, Si, Pi, case, run): # bus i, coefficient n
     # Assign local variables for faster access
-    V = case.V
     Ytrans = case.Ytrans
     branches_buses = case.branches_buses
     phase_dict = case.phase_dict
@@ -329,7 +335,7 @@ def evaluate_bus_eq_dsb_generator_pv2(i, n, Si, Pi, case, run): # bus i, coeffic
                 CC -= valor.real
 
     if n == 1:
-        VV = V[i]**2 - 1
+        VV = case.V[i]**2 - 1
     else:
         VV = 0
         for k in range(1,n):
@@ -347,14 +353,14 @@ def evaluate_bus_eq_dsb_load(i, n, Si, Pi, case, run): # bus i, coefficient n
     phase_dict = case.phase_dict
     W = run.W
     V_complex = run.V_complex
- 
+
+    PP = 0
     if case.phase_barras[i]:
-        PP = 0
         for k in range(len(phase_dict[i][0])):
             PP += phase_dict[i][1][k] * V_complex[phase_dict[i][0][k]][n-1]
-        result = np.conj(Si[i])*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] - PP
-    else:
-        result = np.conj(Si[i])*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1]
+    
+    result = np.conj(Si[i])*np.conj(W[i][n-1]) - case.Yshunt[i]*V_complex[i][n-1] - PP
+    
     run.Soluc_eval[2*i][n] = np.real(result)
     run.Soluc_eval[2*i + 1][n] = np.imag(result)
 
@@ -554,8 +560,9 @@ def computing_voltages_mismatch(
                     resta_columnas_PV[2*k] += array[pos]
                     resta_columnas_PV[2*k+1] += array[pos+1]
                     pos += 2
-                if slack in branches_buses[Vre_vec[0]]:
-                    resta_columnas_PV[2*N] += array[pos]
+                if DSB_model_method is not None:
+                    if slack in branches_buses[Vre_vec[0]]:
+                        resta_columnas_PV[2*N] += array[pos]
             right_hand_side = Soluc_eval[:,coef_actual] - resta_columnas_PV
         else: # pv_bus_model == 2:
             right_hand_side = Soluc_eval[:,coef_actual]
@@ -718,7 +725,7 @@ def power_balance(enforce_Q_limits, algorithm, case, run):
     if 'DS' in algorithm:
         return (Power_branches, S_gen, S_load, S_mismatch, Pmismatch)
     else:
-        return (Power_branches, S_gen, S_load, S_mismatch)
+        return (Power_branches, S_gen, S_load, S_mismatch, None)
 
 
 def print_voltage_profile(V_polar_final, N):
@@ -771,9 +778,8 @@ def create_power_balance_string(
 def write_results_on_files(
     mismatch, scale, algorithm,
     V_polar_final, Power_branches,
-    S_gen, S_load, S_mismatch,
     results_file_name, run,
-    Ploss=None, Pmismatch=None
+    power_balance_string,
 ):
     files_name = \
         'Results' + ' ' + \
@@ -804,14 +810,9 @@ def write_results_on_files(
 
     # Write power balance and other data to .txt file
     # Coefficients/Iterations per PVLIM-PQ switches are written
-    txt_content = create_power_balance_string(
-        scale, mismatch, algorithm,
-        run.list_coef, S_gen, S_load, S_mismatch,
-        Ploss, Pmismatch
-    )
     txt_name = files_name + ".txt"
     txt_file = open(txt_name,"w")
-    txt_file.write(txt_content)
+    txt_file.write(power_balance_string)
     txt_file.close()
 
     print("\nResults have been written on the files:\n\t%s \n\t%s"%(xlsx_name,txt_name))
@@ -898,7 +899,7 @@ def helm(
 
     # Declare run_variables_class objects.
     # Variables/arrays inicialization are inside it
-    run = RunVariables(case, pv_bus_model, DSB_model_method, max_coef)
+    run = RunVariables(case, pv_bus_model, DSB_model, DSB_model_method, max_coef)
 
     while True:
         # Re-construct list_gen. List of generators (PV buses)
@@ -927,24 +928,27 @@ def helm(
         return None
     else:
         if detailed_run_print or save_results:
-            Ploss = Pade(run.coefficients[2*case.N], series_large)
+            Ploss = None
+            if DSB_model_method is not None:
+                Ploss = Pade(run.coefficients[2*case.N], series_large)
             Power_branches, S_gen, S_load, S_mismatch, Pmismatch = power_balance(
                 enforce_Q_limits, algorithm, case, run)
             V_polar_final = convert_complex_to_polar_voltages(run.V_complex_profile, case.N)
-            if detailed_run_print:
-                print_voltage_profile(V_polar_final, case.N)
-                print(create_power_balance_string(
+            if detailed_run_print or save_results:
+                power_balance_string = create_power_balance_string(
                     mismatch, scale, algorithm,
                     run.list_coef, S_gen, S_load, S_mismatch,
                     Ploss, Pmismatch
-                ))
-            if save_results:
-                write_results_on_files(
-                mismatch, scale, algorithm,
-                V_polar_final, Power_branches,
-                S_gen, S_load, S_mismatch,
-                results_file_name, run,
-                Ploss, Pmismatch
-            )
+                )
+                if detailed_run_print:
+                    print_voltage_profile(V_polar_final, case.N)
+                    print(power_balance_string)
+                if save_results:
+                    write_results_on_files(
+                    mismatch, scale, algorithm,
+                    V_polar_final, Power_branches,
+                    results_file_name, run,
+                    power_balance_string
+                )
         return run.V_complex_profile.copy()
         # return run

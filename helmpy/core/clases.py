@@ -224,7 +224,7 @@ class CaseData:
 
 
 class RunVariables:
-    def __init__(self, case, pv_bus_model, DSB_model_method, max_coef):
+    def __init__(self, case, pv_bus_model, DSB_model, DSB_model_method, max_coef):
         # For readability
         N = case.N
 
@@ -237,10 +237,16 @@ class RunVariables:
         self.Pg = np.copy(case.Pg)
         self.Buses_type = np.copy(case.Buses_type)
         self.N = N
+        self.slack = case.slack
+
+        # Length. Number of equations
+        length = 2*N if DSB_model_method is None else 2*N+1
+        self.length = length
 
         # Variables
         # Y_trans_mod is not included, but it may be.
         self.pv_bus_model = pv_bus_model
+        self.DSB_model = DSB_model
         self.DSB_model_method = DSB_model_method
         self.max_coef = max_coef
         self.Qg = np.zeros(N, dtype=np.float64)
@@ -250,21 +256,11 @@ class RunVariables:
         self.list_gen_remove = []
         self.list_coef = []
         self.solve = None
-        self.coefficients = np.empty((2*N+1,set_coef), dtype=np.float64)
-        self.Soluc_eval = np.empty((2*N+1,set_coef), dtype=np.float64)
+        self.coefficients = np.empty((length,set_coef), dtype=np.float64)
+        self.Soluc_eval = np.empty((length,set_coef), dtype=np.float64)
         self.Soluc_no_eval = []
         self.V_complex = np.empty((N, set_coef), dtype=np.complex128)
         self.W = np.empty((N, set_coef), dtype=np.complex128)
-
-        # Distributed slack
-        self.K = np.zeros(N, dtype=np.float64)
-        self.Pg_imbalance = np.sum(case.Pd) - np.sum(case.Pg)
-
-        # DSB_model_method 2
-        if DSB_model_method == 2:
-            self.slack_CC  = np.empty(set_coef, dtype=np.complex128)
-        else:
-            self.slack_CC = None
 
         # HELM pv_bus_model 2
         if pv_bus_model == 2:
@@ -278,8 +274,24 @@ class RunVariables:
         if pv_bus_model == 1:
             self.Y_Vsp_PV = []
             self.Vre_PV = np.empty((N, set_coef), dtype=np.float64)
-            self.resta_columnas_PV = np.empty(2*N+1, dtype=np.float64)
+            self.resta_columnas_PV = np.empty(length, dtype=np.float64)
         else: self.Y_Vsp_PV=None; self.Vre_PV=None; self.resta_columnas_PV=None
+
+        # Distributed slack
+        self.K = np.zeros(N, dtype=np.float64)
+        if DSB_model_method is not None:
+            self.Pg_imbalance = np.sum(case.Pd) - np.sum(case.Pg)
+        else: self.Pg_imbalance=None
+
+        # DSB_model_method 2
+        if DSB_model_method == 2:
+            if pv_bus_model == 2:
+                self.barras_CC[case.slack] = np.empty(set_coef, dtype=np.complex128)
+                self.slack_CC = None
+            else: 
+                self.slack_CC  = np.empty(set_coef, dtype=np.complex128)
+        else:
+            self.slack_CC = None
         
     def expand_coef_arrays(self):
         """
@@ -291,16 +303,17 @@ class RunVariables:
             self.not_expanded = False
             N = self.N
             max_coef = self.max_coef
+            length = self.length
             set_coef = 40
 
             # coefficients
             coefficients = self.coefficients
-            self.coefficients = np.empty((2*N+1,max_coef), dtype=np.float64)
+            self.coefficients = np.empty((length,max_coef), dtype=np.float64)
             self.coefficients[:,0:set_coef] = coefficients
 
             # Soluc_eval
             Soluc_eval = self.Soluc_eval
-            self.Soluc_eval = np.empty((2*N+1,max_coef), dtype=np.float64)
+            self.Soluc_eval = np.empty((length,max_coef), dtype=np.float64)
             self.Soluc_eval[:,0:set_coef] = Soluc_eval
 
             # V_complex
@@ -327,7 +340,13 @@ class RunVariables:
                     self.barras_CC[i][:set_coef] = barras_CC
 
             # DSB_model_method 2
-            slack_CC = self.slack_CC
-            self.slack_CC = np.empty(max_coef, dtype=np.complex128)
-            self.slack_CC[:set_coef] = slack_CC
+            if self.DSB_model_method == 2:
+                if self.pv_bus_model == 2:
+                    barras_CC = self.barras_CC[self.slack]
+                    self.barras_CC[self.slack] = np.empty(max_coef, dtype=np.complex128)
+                    self.barras_CC[self.slack][:set_coef] = barras_CC
+                else: 
+                    slack_CC = self.slack_CC
+                    self.slack_CC = np.empty(max_coef, dtype=np.complex128)
+                    self.slack_CC[:set_coef] = slack_CC
 
