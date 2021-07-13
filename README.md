@@ -13,9 +13,9 @@ so it would be easy to understand and modify.
 ## Repository structure
 
 - data: sample data of large-sized, complex practical grids for testing purposes
-- helmm: matlab files for downloading and parsing to .xlsx matpower grids
+- helmm: matlab files for downloading and parsing to `.xlsx` matpower grids
 - helmpy: scripts with core functionality
-- test: scripts for running tests using sample grids from 'data' directory
+- test: scripts for running tests using sample grids from `data` directory
 
 ## Compatibility
 
