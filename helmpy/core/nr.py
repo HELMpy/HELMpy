@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy.sparse.linalg import spsolve
 
-from helmpy.core.helm_functions import *
+from helmpy.core.functions import *
 
 warnings.filterwarnings("ignore")
 pd.set_option('display.max_rows',1000)
