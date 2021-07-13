@@ -1,0 +1,19 @@
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}License and Terms of Use}{2}{subsection.1.1}%
+\contentsline {section}{\numberline {2}Power Flow}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Modeling}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Algorithms}{3}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}HELM}{3}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}Newton-Raphson}{3}{subsubsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.3}Distributed Slack Bus Model}{4}{subsubsection.2.2.3}%
+\contentsline {subsubsection}{\numberline {2.2.4}Convergence criteria}{6}{subsubsection.2.2.4}%
+\contentsline {section}{\numberline {3}How to use \textsc {HELMpy}}{6}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Software requirements}{6}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Input case}{6}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Obtaining a case from \textsc {Matpower}}{6}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Creating a case:}{7}{subsubsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.3}Functions}{8}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Output files}{10}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Running \textsc {HELMpy}}{11}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Comparing results}{11}{subsection.3.6}%
+\contentsline {section}{\numberline {4}Miscellaneous}{12}{section.4}%
