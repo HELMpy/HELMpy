@@ -13,7 +13,7 @@ pandas==0.25.0
 pip==19.2.1
 pip-upgrade-outdated==1.5
 pluggy==0.12.0
-py==1.8.0
+py==1.10.0
 pyparsing==2.4.1.1
 pytest==5.0.1
 pytest-cov==2.7.1
