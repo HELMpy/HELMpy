@@ -12,7 +12,7 @@ so it would be easy to understand and modify.
 
 ## Repository structure
 
-- data: sample data of large-sized, complex practical grids for testing purposes
+- data: sample data of large-sized, complex practical grids for testing purposes. Already computed results can also be found
 - helmm: matlab files for downloading and parsing to `.xlsx` matpower grids
 - helmpy: scripts with core functionality
 - test: scripts for running tests using sample grids from `data` directory
