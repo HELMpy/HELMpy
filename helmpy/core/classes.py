@@ -6,8 +6,8 @@ import pandas as pd
 
 
 
-# Branches data processing to construct Ytrans, Yshunt, branches_buses and others
 def process_branches(branches, N_branches, case):
+    """Process each branch of a case data to create Ytrans, Yshunt and others."""
     for i in range(N_branches):
         FromBus = branches[0][i]
         ToBus = branches[1][i]
@@ -114,6 +114,7 @@ def process_branches(branches, N_branches, case):
 
 
 def create_case_data_object_from_xlsx(grid_data_file_path, case_name=None):
+    """Creates a case data object from an xlsx containing the information."""
     if not (case_name is None or type(case_name) is str):
         print("Erroneous argument type.")
         return None
@@ -177,6 +178,7 @@ def create_case_data_object_from_xlsx(grid_data_file_path, case_name=None):
 
 
 class CaseData:
+    """Data of a case."""
     def __init__(self, name, N, N_generators):
         # case name
         self.name = name
@@ -224,6 +226,7 @@ class CaseData:
 
 
 class RunVariables:
+    """Group of variables neededed in the run."""
     def __init__(self, case, pv_bus_model, DSB_model, DSB_model_method, max_coef):
         # For readability
         N = case.N

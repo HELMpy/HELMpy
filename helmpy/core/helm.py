@@ -17,7 +17,7 @@ import pandas as pd
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import factorized
 
-from helmpy.core.clases import RunVariables, CaseData
+from helmpy.core.classes import RunVariables, CaseData
 from helmpy.core.analytic_continuation import Pade
 
 warnings.filterwarnings("ignore")
@@ -26,8 +26,11 @@ pd.set_option('display.max_columns',1000)
 pd.set_option('display.width',1000)
 
 
-# Create modified Y matrix and list that contains the respective column to its voltage on PV and PVLIM buses 
+
 def modif_Ytrans(DSB_model_method, pv_bus_model, case, run):
+    """Create modified Y matrix and list that contains the respective column 
+    to its voltage on PV and PVLIM buses 
+    """
     # Assign local variables for faster access
     N = case.N
     slack = case.slack
@@ -104,8 +107,8 @@ def modif_Ytrans(DSB_model_method, pv_bus_model, case, run):
     run.solve = solve
 
 
-# Arrays and lists creation
 def Unknowns_soluc(DSB_model_method, pv_bus_model, N, run):
+    """Arrays and lists creation"""
     # Assign local variables for faster access
     coefficients = run.coefficients
     Soluc_no_eval = run.Soluc_no_eval
@@ -136,8 +139,11 @@ def Unknowns_soluc(DSB_model_method, pv_bus_model, N, run):
         Soluc_no_eval.append([N,evaluate_bus_eq_dsb_method2])
 
 
-# Real voltage of PV and PVLIM buses computing
-def Calculo_Vre_PV(n, case, run): # coefficient n
+def Calculo_Vre_PV(n, case, run):
+    """Real voltage of PV and PVLIM buses computing.
+    
+    coefficient n
+    """
     # Assign local variables for faster access
     V = case.V
     V_complex = run.V_complex
@@ -155,8 +161,11 @@ def Calculo_Vre_PV(n, case, run): # coefficient n
 #---------------------------------------------------------------------------------------
 # Functions lo evaluate the rigth hand side of the matrix equation
 
-# Function to evaluate the PV bus equation for the slack bus by method 1
-def evaluate_bus_eq_dsb_method1(_, n, Si, Pi, case, run): # coefficient n
+def evaluate_bus_eq_dsb_method1(_, n, Si, Pi, case, run):
+    """Function to evaluate the PV bus equation for the slack bus by method 1
+    
+    coefficient n
+    """
     # Assign local variables for faster access
     N = case.N
     phase_dict = case.phase_dict
@@ -179,8 +188,10 @@ def evaluate_bus_eq_dsb_method1(_, n, Si, Pi, case, run): # coefficient n
     run.Soluc_eval[2*N][n] = np.real(result)
 
 
-# Function to evaluate the PV bus equation for the slack bus by method 2
-def evaluate_bus_eq_dsb_method2(_, n, Si, Pi, case, run): # coefficient n
+def evaluate_bus_eq_dsb_method2(_, n, Si, Pi, case, run):
+    """Function to evaluate the PV bus equation for the slack bus by method 2
+    
+    coefficient n"""
     # Assign local variables for faster access
     Ytrans = case.Ytrans
     branches_buses = case.branches_buses
@@ -247,8 +258,11 @@ def evaluate_bus_eq_dsb_method2(_, n, Si, Pi, case, run): # coefficient n
     run.Soluc_eval[2*case.N][n] = CC
 
 
-# Function to evaluate the PV buses equation by py model 1
-def evaluate_bus_eq_dsb_generator_pv1(i, n, Si, Pi, case, run): # bus i, coefficient n
+def evaluate_bus_eq_dsb_generator_pv1(i, n, Si, Pi, case, run):
+    """Function to evaluate the PV buses equation by py model 1
+    
+    bus i, coefficient n
+    """
     # Assign local variables for faster access
     N = case.N
     phase_dict = case.phase_dict
@@ -276,8 +290,11 @@ def evaluate_bus_eq_dsb_generator_pv1(i, n, Si, Pi, case, run): # bus i, coeffic
     run.Soluc_eval[2*i + 1][n] = np.imag(result)
 
 
-# Function to evaluate the PV buses equation by py model 2
-def evaluate_bus_eq_dsb_generator_pv2(i, n, Si, Pi, case, run): # bus i, coefficient n
+def evaluate_bus_eq_dsb_generator_pv2(i, n, Si, Pi, case, run):
+    """Function to evaluate the PV buses equation by py model 2
+    
+    bus i, coefficient n
+    """
     # Assign local variables for faster access
     Ytrans = case.Ytrans
     branches_buses = case.branches_buses
@@ -347,8 +364,11 @@ def evaluate_bus_eq_dsb_generator_pv2(i, n, Si, Pi, case, run): # bus i, coeffic
     run.Soluc_eval[2*i + 1][n] = VV/2
 
 
-# Function to evaluate the PQ buses equation 
-def evaluate_bus_eq_dsb_load(i, n, Si, Pi, case, run): # bus i, coefficient n
+def evaluate_bus_eq_dsb_load(i, n, Si, Pi, case, run):
+    """Function to evaluate the PQ buses equation
+    
+    bus i, coefficient n
+    """
     # Assign local variables for faster access
     phase_dict = case.phase_dict
     W = run.W
@@ -365,8 +385,11 @@ def evaluate_bus_eq_dsb_load(i, n, Si, Pi, case, run): # bus i, coefficient n
     run.Soluc_eval[2*i + 1][n] = np.imag(result)
 
 
-# Function to evaluate the slack bus equation 
-def evaluate_bus_eq_dsb_slack(i, n, Si, Pi, case, run): # bus i, coefficient n
+def evaluate_bus_eq_dsb_slack(i, n, Si, Pi, case, run):
+    """Function to evaluate the slack bus equation
+    
+    bus i, coefficient n
+    """
     if n == 1:
         run.Soluc_eval[2*i][n] = case.V[i] - 1
         run.Soluc_eval[2*i + 1][n] = 0
@@ -376,8 +399,10 @@ def evaluate_bus_eq_dsb_slack(i, n, Si, Pi, case, run): # bus i, coefficient n
 
 #---------------------------------------------------------------------------------------
 
-# Complex voltages computing
-def compute_complex_voltages(n, pv_bus_model, case, run):  # coefficient n
+def compute_complex_voltages(n, pv_bus_model, case, run):
+    """Complex voltages computing
+    
+    coefficient n"""
     # Assign local variables for faster access
     Vre_PV = run.Vre_PV
     V_complex = run.V_complex
@@ -395,8 +420,8 @@ def compute_complex_voltages(n, pv_bus_model, case, run):  # coefficient n
                 V_complex[i][n] = coefficients[i*2][n] + 1j*coefficients[i*2 + 1][n]
 
 
-# W computing - Inverse voltages "W" array
 def calculate_inverse_voltages_w_array(n, case, run):
+    """W computing - Inverse voltages "W" array"""
     # Assign local variables for faster access
     W = run.W
     V_complex = run.V_complex
@@ -408,8 +433,8 @@ def calculate_inverse_voltages_w_array(n, case, run):
         W[i][n] = -aux
 
 
-# Computing P injection at bus i. Must be used after Voltages_profile()
 def P_iny(i, case, run):
+    """Computing P injection at bus i. Must be used after Voltages_profile()"""
     # Assign local variables for faster access
     Yre = case.Yre
     Yimag = case.Yimag
@@ -424,8 +449,8 @@ def P_iny(i, case, run):
     return Piny
 
 
-# Computing Q injection at bus i. Must be used after Voltages_profile()
 def Q_iny(i, case, run):
+    """Computing Q injection at bus i. Must be used after Voltages_profile()"""
     # Assign local variables for faster access
     Yre = case.Yre
     Yimag = case.Yimag
@@ -440,8 +465,8 @@ def Q_iny(i, case, run):
     return Qiny
 
 
-# Verification of Qgen limits for PVLIM buses
 def check_PVLIM_violation(detailed_run_print, case, run):
+    """Verification of Qgen limits for PVLIM buses"""
     # Assign local variables for faster access
     Qd = case.Qd
     Qgmax = case.Qgmax
@@ -465,9 +490,12 @@ def check_PVLIM_violation(detailed_run_print, case, run):
     return flag_violacion
 
 
-# Computing of the K factor for each PV bus and the slack bus.
-# Only the PV buses are considered to calculate Pgen_total. The PV buses that were converted to PQ buses are NOT considered.
 def compute_k_factor(case, run):
+    """Computing of the K factor for each PV bus and the slack bus.
+    
+    Only the PV buses are considered to calculate Pgen_total. The PV buses 
+    that were converted to PQ buses are NOT considered.
+    """
     # Assign local variables for faster access
     K = run.K
     Pg = run.Pg
@@ -488,17 +516,20 @@ def compute_k_factor(case, run):
         K[i] = Pg[i]/Pgen_total
 
 
-# Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
 def K_slack_1(case, run):
+    """Set the slack's participation factor to 1 and the rest to 0. 
+    
+    Classic slack bus model.
+    """
     run.K.fill(0)
     run.K[case.slack] = 1
 
 
-# Loop of coefficients computing until the mismatch is reached
 def computing_voltages_mismatch(
     detailed_run_print, mismatch, max_coef, enforce_Q_limits,
     pv_bus_model, DSB_model_method, case, run
 ):
+    """Loop of coefficients computing until the mismatch is reached"""
     # Assign local variables for faster access
     slack = case.slack
     branches_buses = case.branches_buses
@@ -628,17 +659,17 @@ def computing_voltages_mismatch(
     return flag_recalculate, flag_divergence, series_large
 
 
-# Separate each voltage value in magnitude and phase angle (degrees)
 def convert_complex_to_polar_voltages(complex_voltage, N):
+    """Separate each voltage value in magnitude and phase angle (degrees)"""
     polar_voltage = np.empty((N,2), dtype=np.float64)
     polar_voltage[:,0] = np.absolute(complex_voltage)
     polar_voltage[:,1] = np.angle(complex_voltage, deg=True)
     return polar_voltage
 
 
-# Computation of power flow trough branches and power balance
 def power_balance(enforce_Q_limits, algorithm, case, run):
-    # Save for latter: Pi=None, Qi=None, K=None 
+    """Computation of power flow trough branches and power balance"""
+    # Save for later: Pi=None, Qi=None, K=None 
 
     # Assign local variables for faster access
     Ybr_list = case.Ybr_list
@@ -729,6 +760,7 @@ def power_balance(enforce_Q_limits, algorithm, case, run):
 
 
 def print_voltage_profile(V_polar_final, N):
+    """Print voltage profile."""
     print("\n\tVoltage profile:")
     print("   Bus    Magnitude (p.u.)    Phase Angle (degrees)")
     if N <= 31:
