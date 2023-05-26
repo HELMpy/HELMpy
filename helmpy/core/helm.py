@@ -25,8 +25,9 @@ pd.set_option('display.max_rows',1000)
 pd.set_option('display.max_columns',1000)
 pd.set_option('display.width',1000)
 
+from numba import jit
 
-
+@jit
 def modif_Ytrans(DSB_model_method, pv_bus_model, case, run):
     """Create modified Y matrix and list that contains the respective column 
     to its voltage on PV and PVLIM buses 
@@ -106,7 +107,7 @@ def modif_Ytrans(DSB_model_method, pv_bus_model, case, run):
     solve = factorized(csc_matrix(Ytrans_mod))
     run.solve = solve
 
-
+@jit
 def Unknowns_soluc(DSB_model_method, pv_bus_model, N, run):
     """Arrays and lists creation"""
     # Assign local variables for faster access
@@ -138,7 +139,7 @@ def Unknowns_soluc(DSB_model_method, pv_bus_model, N, run):
     elif DSB_model_method == 2:
         Soluc_no_eval.append([N,evaluate_bus_eq_dsb_method2])
 
-
+@jit
 def Calculo_Vre_PV(n, case, run):
     """Real voltage of PV and PVLIM buses computing.
     
@@ -160,7 +161,7 @@ def Calculo_Vre_PV(n, case, run):
 
 #---------------------------------------------------------------------------------------
 # Functions lo evaluate the rigth hand side of the matrix equation
-
+@jit
 def evaluate_bus_eq_dsb_method1(_, n, Si, Pi, case, run):
     """Function to evaluate the PV bus equation for the slack bus by method 1
     
@@ -257,7 +258,7 @@ def evaluate_bus_eq_dsb_method2(_, n, Si, Pi, case, run):
 
     run.Soluc_eval[2*case.N][n] = CC
 
-
+@jit
 def evaluate_bus_eq_dsb_generator_pv1(i, n, Si, Pi, case, run):
     """Function to evaluate the PV buses equation by py model 1
     
@@ -289,7 +290,7 @@ def evaluate_bus_eq_dsb_generator_pv1(i, n, Si, Pi, case, run):
     run.Soluc_eval[2*i][n] = np.real(result)
     run.Soluc_eval[2*i + 1][n] = np.imag(result)
 
-
+@jit
 def evaluate_bus_eq_dsb_generator_pv2(i, n, Si, Pi, case, run):
     """Function to evaluate the PV buses equation by py model 2
     
@@ -363,7 +364,7 @@ def evaluate_bus_eq_dsb_generator_pv2(i, n, Si, Pi, case, run):
     run.Soluc_eval[2*i][n] = CC
     run.Soluc_eval[2*i + 1][n] = VV/2
 
-
+@jit
 def evaluate_bus_eq_dsb_load(i, n, Si, Pi, case, run):
     """Function to evaluate the PQ buses equation
     
@@ -384,7 +385,7 @@ def evaluate_bus_eq_dsb_load(i, n, Si, Pi, case, run):
     run.Soluc_eval[2*i][n] = np.real(result)
     run.Soluc_eval[2*i + 1][n] = np.imag(result)
 
-
+@jit
 def evaluate_bus_eq_dsb_slack(i, n, Si, Pi, case, run):
     """Function to evaluate the slack bus equation
     
@@ -398,7 +399,7 @@ def evaluate_bus_eq_dsb_slack(i, n, Si, Pi, case, run):
         run.Soluc_eval[2*i + 1][n] = 0
 
 #---------------------------------------------------------------------------------------
-
+@jit
 def compute_complex_voltages(n, pv_bus_model, case, run):
     """Complex voltages computing
     
@@ -419,7 +420,7 @@ def compute_complex_voltages(n, pv_bus_model, case, run):
             else:
                 V_complex[i][n] = coefficients[i*2][n] + 1j*coefficients[i*2 + 1][n]
 
-
+@jit
 def calculate_inverse_voltages_w_array(n, case, run):
     """W computing - Inverse voltages "W" array"""
     # Assign local variables for faster access
@@ -432,7 +433,7 @@ def calculate_inverse_voltages_w_array(n, case, run):
             aux += (W[i][k] * V_complex[i][n-k])
         W[i][n] = -aux
 
-
+@jit
 def P_iny(i, case, run):
     """Computing P injection at bus i. Must be used after Voltages_profile()"""
     # Assign local variables for faster access
@@ -448,7 +449,7 @@ def P_iny(i, case, run):
                 + Vimag[i] * (Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
     return Piny
 
-
+@jit
 def Q_iny(i, case, run):
     """Computing Q injection at bus i. Must be used after Voltages_profile()"""
     # Assign local variables for faster access
@@ -464,7 +465,7 @@ def Q_iny(i, case, run):
                 - Vre[i] * (Yre[i][k]*Vimag[k] + Yimag[i][k]*Vre[k])
     return Qiny
 
-
+@jit
 def check_PVLIM_violation(detailed_run_print, case, run):
     """Verification of Qgen limits for PVLIM buses"""
     # Assign local variables for faster access
@@ -489,7 +490,7 @@ def check_PVLIM_violation(detailed_run_print, case, run):
                 print('Bus %d exceeded its Qgen limit with %f. The exceeded limit %f will be assigned to the bus'%(i+1,Qg_incog,Qg[i]))
     return flag_violacion
 
-
+@jit
 def compute_k_factor(case, run):
     """Computing of the K factor for each PV bus and the slack bus.
     
@@ -515,7 +516,7 @@ def compute_k_factor(case, run):
     for i in Distrib:
         K[i] = Pg[i]/Pgen_total
 
-
+@jit
 def K_slack_1(case, run):
     """Set the slack's participation factor to 1 and the rest to 0. 
     
@@ -658,7 +659,7 @@ def computing_voltages_mismatch(
     
     return flag_recalculate, flag_divergence, series_large
 
-
+@jit
 def convert_complex_to_polar_voltages(complex_voltage, N):
     """Separate each voltage value in magnitude and phase angle (degrees)"""
     polar_voltage = np.empty((N,2), dtype=np.float64)
@@ -666,7 +667,7 @@ def convert_complex_to_polar_voltages(complex_voltage, N):
     polar_voltage[:,1] = np.angle(complex_voltage, deg=True)
     return polar_voltage
 
-
+@jit
 def power_balance(enforce_Q_limits, algorithm, case, run):
     """Computation of power flow trough branches and power balance"""
     # Save for later: Pi=None, Qi=None, K=None 
@@ -758,7 +759,7 @@ def power_balance(enforce_Q_limits, algorithm, case, run):
     else:
         return (Power_branches, S_gen, S_load, S_mismatch, None)
 
-
+@jit
 def print_voltage_profile(V_polar_final, N):
     """Print voltage profile."""
     print("\n\tVoltage profile:")
@@ -774,7 +775,7 @@ def print_voltage_profile(V_polar_final, N):
             .format(i,mag,ang) for i,(mag,ang) in enumerate(V_polar_final[N-14:N],N-14)), sep='\n')
     print()
 
-
+@jit
 def create_power_balance_string(
     mismatch, scale, algorithm,
     list_coef_or_iterations, S_gen, S_load, S_mismatch,
@@ -806,7 +807,7 @@ def create_power_balance_string(
 
     return output
 
-
+@jit
 def write_results_on_files(
     mismatch, scale, algorithm,
     V_polar_final, Power_branches,
@@ -849,7 +850,7 @@ def write_results_on_files(
 
     print("\nResults have been written on the files:\n\t%s \n\t%s"%(xlsx_name,txt_name))
 
-
+@jit
 def validate_arguments(
         case,
         detailed_run_print, mismatch, scale,
@@ -930,7 +931,7 @@ def helm(
         case.set_scale(scale)
 
     # Declare run_variables_class objects.
-    # Variables/arrays inicialization are inside it
+    # Variables/arrays initialization are inside it
     run = RunVariables(case, pv_bus_model, DSB_model, DSB_model_method, max_coef)
 
     while True:
@@ -938,7 +939,7 @@ def helm(
         run.list_gen = np.setdiff1d(run.list_gen, run.list_gen_remove, assume_unique=True)
         # Define K factors
         if DSB_model:
-            # Computing of the K factor for each PV bus and the slack bus.
+            # Computing the K factor for each PV bus and the slack bus.
             compute_k_factor(case, run)
         elif DSB_model_method is not None:
             # Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
