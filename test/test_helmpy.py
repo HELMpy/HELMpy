@@ -6,6 +6,7 @@ from os.path import basename
 
 import numpy as np
 import pandas as pd
+import time
 
 from paths import helmpy, HELMPY_PATH
 
@@ -155,4 +156,8 @@ if __name__ == '__main__':
             case2869pegase,
     ]
 
+    start = time.time()
     test_helmpy_functions(detailed_print, cases_to_test, pv_dsb_methods)
+    end = time.time()
+
+    print('Testing took: ' + str(end-start) + ' s.')
