@@ -26,6 +26,7 @@ pd.set_option('display.max_columns',1000)
 pd.set_option('display.width',1000)
 
 from numba import jit
+from typing import Tuple
 
 @jit
 def modif_Ytrans(DSB_model_method, pv_bus_model, case, run):
@@ -667,9 +668,9 @@ def convert_complex_to_polar_voltages(complex_voltage, N):
     polar_voltage[:,1] = np.angle(complex_voltage, deg=True)
     return polar_voltage
 
-@jit
+
 def power_balance(enforce_Q_limits, algorithm, case, run):
-    """Computation of power flow trough branches and power balance"""
+    """Computation of power flow through branches and power balance"""
     # Save for later: Pi=None, Qi=None, K=None 
 
     # Assign local variables for faster access
@@ -894,22 +895,14 @@ def validate_arguments(
 
 
 # Main loop
-def helm(
-    case,
-    detailed_run_print=False, mismatch=1e-4, scale=1,
-    max_coefficients=100, enforce_Q_limits=True,
-    results_file_name=None, save_results=False,
-    pv_bus_model=2, DSB_model=False, DSB_model_method=None, 
-):
+def helm(case, detailed_run_print=False, mismatch=1e-4, scale=1, max_coefficients=100, enforce_Q_limits=True,
+         results_file_name=None, save_results=False, pv_bus_model=2, DSB_model=False, DSB_model_method=None,
+         ) -> Tuple[RunVariables, int, bool]:
+
     # Arguments validation
-    if not validate_arguments(
-        case,
-        detailed_run_print, mismatch, scale,
-        max_coefficients, enforce_Q_limits,
-        results_file_name, save_results,
-        pv_bus_model, DSB_model, DSB_model_method, 
-    ):
-        return None
+    if not validate_arguments(case, detailed_run_print, mismatch, scale, max_coefficients, enforce_Q_limits,
+                              results_file_name, save_results, pv_bus_model, DSB_model, DSB_model_method):
+        raise ValueError('Arguments were wrong.')
 
     if DSB_model and DSB_model_method is None:
         DSB_model_method = 2
@@ -924,6 +917,7 @@ def helm(
 
     if results_file_name is None:
         results_file_name = case.name
+
     max_coef = max_coefficients
 
     # set case at the scale
@@ -937,6 +931,7 @@ def helm(
     while True:
         # Re-construct list_gen. List of generators (PV buses)
         run.list_gen = np.setdiff1d(run.list_gen, run.list_gen_remove, assume_unique=True)
+
         # Define K factors
         if DSB_model:
             # Computing the K factor for each PV bus and the slack bus.
@@ -944,44 +939,44 @@ def helm(
         elif DSB_model_method is not None:
             # Set the slack's participation factor to 1 and the rest to 0. Classic slack bus model.
             K_slack_1(case, run)
+
         # Create modified Y matrix and list that contains the respective column to its voltage on PV and PVLIM buses 
         modif_Ytrans(DSB_model_method, pv_bus_model, case, run)
+
         # Arrays and lists creation
         Unknowns_soluc(DSB_model_method, pv_bus_model, case.N, run)
+
         # Loop of coefficients computing until the mismatch is reached
-        flag_recalculate, flag_divergence, series_large = computing_voltages_mismatch(
-            detailed_run_print, mismatch, max_coef, enforce_Q_limits, 
-            pv_bus_model, DSB_model_method, case, run)
+        flag_recalculate, flag_divergence, series_large = computing_voltages_mismatch(detailed_run_print, mismatch,
+                                                                                      max_coef, enforce_Q_limits,
+                                                                                      pv_bus_model, DSB_model_method,
+                                                                                      case, run)
+
         if not flag_recalculate:
             break
     # reset scale case
     if scale != 1:
         case.reset_scale()
-    if flag_divergence:
-        return None
-    else:
+
+    if not flag_divergence:
         if detailed_run_print or save_results:
             Ploss = None
+
             if DSB_model_method is not None:
                 Ploss = Pade(run.coefficients[2*case.N], series_large)
-            Power_branches, S_gen, S_load, S_mismatch, Pmismatch = power_balance(
-                enforce_Q_limits, algorithm, case, run)
-            V_polar_final = convert_complex_to_polar_voltages(run.V_complex_profile, case.N)
+
+            Power_branches, S_gen, S_load, S_mismatch, Pmismatch = power_balance(enforce_Q_limits, algorithm, case, run)
+
             if detailed_run_print or save_results:
-                power_balance_string = create_power_balance_string(
-                    mismatch, scale, algorithm,
-                    run.list_coef, S_gen, S_load, S_mismatch,
-                    Ploss, Pmismatch
-                )
+                V_polar_final = convert_complex_to_polar_voltages(run.V_complex_profile, case.N)
+
+                power_balance_string = create_power_balance_string(mismatch, scale, algorithm, run.list_coef, S_gen,
+                                                                   S_load, S_mismatch, Ploss, Pmismatch)
                 if detailed_run_print:
                     print_voltage_profile(V_polar_final, case.N)
                     print(power_balance_string)
                 if save_results:
-                    write_results_on_files(
-                    mismatch, scale, algorithm,
-                    V_polar_final, Power_branches,
-                    results_file_name, run,
-                    power_balance_string
-                )
-        return run.V_complex_profile.copy()
-        # return run
+                    write_results_on_files(mismatch, scale, algorithm, V_polar_final, Power_branches, results_file_name,
+                                           run, power_balance_string)
+
+    return run, series_large, flag_divergence
