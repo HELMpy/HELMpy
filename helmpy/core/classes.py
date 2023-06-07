@@ -19,27 +19,27 @@ def process_branches(branches, N_branches, case):
 
         FB = case.Number_bus[FromBus] 
         TB = case.Number_bus[ToBus]
-        case.Ybr_list.append([FB, TB, np.zeros((2,2), dtype=np.complex128)])
+        case.Ybr_list.append([FB, TB, np.zeros((2, 2), dtype=np.complex128)])
         Z = R + 1j*X
         if Tap == 0 or Tap == 1:
             if Z != 0:
                 Yseries_ft = 1/Z
                 if Shift_degree == 0:
-                    case.Ybr_list[i][2][0,1] = case.Ybr_list[i][2][1,0] = -Yseries_ft
+                    case.Ybr_list[i][2][0, 1] = case.Ybr_list[i][2][1, 0] = -Yseries_ft
                 else:
                     Shift = np.deg2rad(Shift_degree)
                     Yseries_ft_shift = Yseries_ft/(np.exp(-1j*Shift))
                     Yseries_tf_shift = Yseries_ft/(np.exp(1j*Shift))
-                    case.Ybr_list[i][2][0,1] = -Yseries_ft_shift
-                    case.Ybr_list[i][2][1,0] = -Yseries_tf_shift
+                    case.Ybr_list[i][2][0, 1] = -Yseries_ft_shift
+                    case.Ybr_list[i][2][1, 0] = -Yseries_tf_shift
                     if case.phase_barras[FB]:
                         if TB in case.phase_dict[FB][0]:
-                            case.phase_dict[FB][1][ case.phase_dict[FB][0].index(TB) ] += Yseries_ft - Yseries_ft_shift
+                            case.phase_dict[FB][1][case.phase_dict[FB][0].index(TB)] += Yseries_ft - Yseries_ft_shift
                         else:
                             case.phase_dict[FB][0].append(TB)
                             case.phase_dict[FB][1].append(Yseries_ft - Yseries_ft_shift)
                     else:
-                        case.phase_dict[FB] = [[TB],[Yseries_ft - Yseries_ft_shift]]
+                        case.phase_dict[FB] = [[TB], [Yseries_ft - Yseries_ft_shift]]
                         case.phase_barras[FB] = True
                     if(case.phase_barras[TB]):
                         if( FB in case.phase_dict[TB][0]):
@@ -48,7 +48,7 @@ def process_branches(branches, N_branches, case):
                             case.phase_dict[FB][0].append(FB)
                             case.phase_dict[FB][1].append(Yseries_ft - Yseries_tf_shift)
                     else:
-                        case.phase_dict[TB] = [[FB],[Yseries_ft - Yseries_tf_shift]]
+                        case.phase_dict[TB] = [[FB], [Yseries_ft - Yseries_tf_shift]]
                         case.phase_barras[TB] = True
                 case.Ytrans[FB][TB] += -Yseries_ft
                 case.Ytrans[FB][FB] +=  Yseries_ft
@@ -137,7 +137,7 @@ def create_case_data_object_from_xlsx(grid_data_file_path, case_name=None):
     case.Pd[:] = buses[2]/100
     case.Qd[:] = buses[3]/100
     case.Shunt[:] = buses[5]*1j/100 + buses[4]/100
-    case.Yshunt[:] =  np.copy(case.Shunt)
+    case.Yshunt[:] = np.copy(case.Shunt)
 
     for i in range(N):
         case.Number_bus[buses[0][i]] = i
@@ -185,12 +185,12 @@ class CaseData:
 
         # case data
         self.N = N
-        self.N_branches = np.int()
-        self.slack_bus = np.int()
-        self.slack = np.int()
+        self.N_branches = np.int64
+        self.slack_bus = np.int64
+        self.slack = np.int64
         self.Number_bus = dict()
         self.Buses_type = ['PQ' for i in range(N)]
-        self.list_gen = np.empty(N_generators-1, dtype=int)
+        self.list_gen = np.empty(N_generators-1, dtype=np.int64)
         self.V = np.empty(N, dtype=np.float64)
         self.Pd = np.empty(N, dtype=np.float64)
         self.Qd = np.empty(N, dtype=np.float64)
@@ -231,7 +231,7 @@ class RunVariables:
         # For readability
         N = case.N
 
-        # Set number of coefficientis to start arrays. This is to to reduce the array size
+        # Set number of coefficientis to start arrays. This is to reduce the array size
         set_coef = 40 if max_coef > 40 else max_coef
         self.not_expanded = True # Variable execute expand_coef_arrays only once
 

@@ -6,6 +6,7 @@ from os.path import basename
 
 import numpy as np
 import pandas as pd
+import time
 
 from paths import helmpy, HELMPY_PATH
 
@@ -72,10 +73,11 @@ def test_helmpy_functions(detailed_print, cases_to_test, pv_dsb_methods):
                 print("\nCase: " + case.name)
             scale = 1.02 if DSB_model else 1
             # Execute function
-            complex_voltage = helmpy.helm(
+            run, _, _ = helmpy.helm(
                 case.case, mismatch=1e-8, scale=scale, # detailed_run_print=True,
                 pv_bus_model=pv_bus_model, DSB_model=DSB_model, DSB_model_method=DSB_model_method )
             # Errors
+            complex_voltage = run.V_complex_profile.copy()
             polar_voltage = convert_complex_to_polar_voltages( complex_voltage ) # Calculate polar voltage
             if DSB_model:
                 magnitud_error = np.absolute( polar_voltage[:,0] - case.distributed_slack_magnitude )
@@ -86,14 +88,14 @@ def test_helmpy_functions(detailed_print, cases_to_test, pv_dsb_methods):
             max_magnitud_error = np.max(magnitud_error)
             max_phase_angles_error = np.max(phase_angles_error)
             if detailed_print:
-                print("Maximun magnitud error: ", max_magnitud_error)
-                print("Maximun phase angles error: ", max_phase_angles_error)
+                print("Maximum magnitude error: ", max_magnitud_error)
+                print("Maximum phase angles error: ", max_phase_angles_error)
             total_errors.append(max_magnitud_error)
             total_errors.append(max_phase_angles_error)
     
     # Final output
     print("\n\n  ###################################")
-    print("  ### Maximun error of all tests: ###")
+    print("  ### Maximum error of all tests: ###")
     print("  ###################################\n")
     print("--->", np.max(total_errors), end='\n\n')
 
@@ -155,4 +157,8 @@ if __name__ == '__main__':
             case2869pegase,
     ]
 
+    start = time.time()
     test_helmpy_functions(detailed_print, cases_to_test, pv_dsb_methods)
+    end = time.time()
+
+    print('Testing took: ' + str(end-start) + ' s.')
